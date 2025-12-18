@@ -1,0 +1,139 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - beta
+          - latest
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/tg-telegram-imagebed
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 获取Beta版本号
+        id: beta_version
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'beta'
+        run: |
+          # 获取所有beta标签
+          git fetch --tags
+          LATEST_BETA=$(git tag -l "beta-*" | sort -V | tail -n 1)
+          
+          if [ -z "$LATEST_BETA" ]; then
+            # 如果没有beta标签，从beta-1开始
+            NEW_BETA="beta-1"
+          else
+            # 提取数字并递增
+            BETA_NUM=$(echo $LATEST_BETA | sed 's/beta-//')
+            NEW_NUM=$((BETA_NUM + 1))
+            NEW_BETA="beta-${NEW_NUM}"
+          fi
+          
+          echo "version=$NEW_BETA" >> $GITHUB_OUTPUT
+          echo "📦 新的Beta版本: $NEW_BETA"
+
+      - name: 创建Beta Git标签
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'beta'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.beta_version.outputs.version }}
+          git push origin ${{ steps.beta_version.outputs.version }}
+
+      - name: 准备Docker标签（Latest）
+        id: meta_latest
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'latest')
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix={{date 'YYYYMMDD'}}-
+
+      - name: 准备Docker标签（Beta）
+        id: meta_beta
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'beta'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.beta_version.outputs.version }}
+            type=raw,value=beta
+
+      - name: 构建并推送Docker镜像（Latest）
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'latest')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta_latest.outputs.tags }}
+          labels: ${{ steps.meta_latest.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 构建并推送Docker镜像（Beta）
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'beta'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta_beta.outputs.tags }}
+          labels: ${{ steps.meta_beta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 输出镜像信息
+        run: |
+          echo "🎉 Docker镜像构建成功！"
+          echo ""
+          echo "📋 镜像信息："
+          if [ "${{ github.event_name }}" == "push" ] || [ "${{ github.event.inputs.release_type }}" == "latest" ]; then
+            echo "  - ${{ env.IMAGE_NAME }}:latest"
+            echo "  - ${{ env.IMAGE_NAME }}:$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+          else
+            echo "  - ${{ env.IMAGE_NAME }}:${{ steps.beta_version.outputs.version }}"
+            echo "  - ${{ env.IMAGE_NAME }}:beta"
+          fi
+          echo ""
+          echo "🚀 拉取命令："
+          if [ "${{ github.event_name }}" == "push" ] || [ "${{ github.event.inputs.release_type }}" == "latest" ]; then
+            echo "  docker pull ${{ env.IMAGE_NAME }}:latest"
+          else
+            echo "  docker pull ${{ env.IMAGE_NAME }}:${{ steps.beta_version.outputs.version }}"
+            echo "  docker pull ${{ env.IMAGE_NAME }}:beta"
+          fi

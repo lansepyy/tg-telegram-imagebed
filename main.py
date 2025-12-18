@@ -246,8 +246,8 @@ def run_telegram_bot():
         except ValueError:
             return set()
 
-    async def handle_photo(update: Update, context):
-        """处理图片上传（私聊/群组/频道）"""
+    async def handle_file(update: Update, context):
+        """处理图片上传（私聊/群组/频道）- 支持压缩photo和不压缩document"""
         from tg_imagebed.services.file_service import process_upload, record_existing_telegram_file
         from tg_imagebed.utils import get_domain
         from tg_imagebed.database import get_system_setting
@@ -294,25 +294,38 @@ def run_telegram_bot():
                 pass
 
         try:
-            if not message.photo:
+            # 兼容 photo(压缩)和 document(不压缩)两种类型
+            if message.photo:
+                photo = message.photo[-1]
+                file_id = photo.file_id
+                file_unique_id = photo.file_unique_id
+                filename = f"telegram_{photo.file_id[:12]}.jpg"
+                content_type = 'image/jpeg'
+            elif message.document and message.document.mime_type and message.document.mime_type.startswith('image/'):
+                doc = message.document
+                file_id = doc.file_id
+                file_unique_id = doc.file_unique_id
+                filename = doc.file_name or f"telegram_{doc.file_id[:12]}.jpg"
+                content_type = doc.mime_type or 'image/jpeg'
+            else:
                 if status_msg:
                     await status_msg.edit_text("❌ 请发送图片文件")
                 return
 
-            photo = message.photo[-1]
-            file_info = await context.bot.get_file(photo.file_id)
+            file_info = await context.bot.get_file(file_id)
             file_bytes = await file_info.download_as_bytearray()
-            filename = f"telegram_{photo.file_id[:12]}.jpg"
+
 
             if is_group:
-                # 群组/频道：不做二次上传，直接记录原始 file_id/file_path
+                # 群组/频道:不做二次上传,直接记录原始 file_id/file_path
                 result = record_existing_telegram_file(
-                    file_id=photo.file_id,
-                    file_unique_id=photo.file_unique_id,
+                    file_id=file_id,
+                    file_unique_id=file_unique_id,
                     file_path=getattr(file_info, 'file_path', '') or '',
                     file_content=bytes(file_bytes),
                     filename=filename,
-                    content_type='image/jpeg',
+                    content_type=content_type,
+
                     username=username,
                     source='telegram_group',
                     is_group_upload=True,
@@ -320,11 +333,12 @@ def run_telegram_bot():
                     group_chat_id=chat.id,
                 )
             else:
-                # 私聊：保持原有上传流程
+                # 私聊:保持原有上传流程
                 result = process_upload(
                     file_content=bytes(file_bytes),
                     filename=filename,
-                    content_type='image/jpeg',
+                    content_type=content_type,
+
                     username=username,
                     source='telegram_bot',
                     is_group_upload=False,
@@ -499,7 +513,9 @@ def run_telegram_bot():
 
                 # 添加处理器
                 telegram_app.add_handler(CommandHandler("start", start))
-                telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+                telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_file))  # 压缩图片
+                telegram_app.add_handler(MessageHandler(filters.Document.IMAGE, handle_file))  # 不压缩图片
+
                 telegram_app.add_error_handler(application_error_handler)
 
                 logger.info("Telegram 机器人启动中...")

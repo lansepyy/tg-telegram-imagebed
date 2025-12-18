@@ -62,14 +62,6 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <NuxtLink to="/">
-            <UButton color="primary" variant="soft" size="sm">
-              <template #leading>
-                <UIcon name="heroicons:cloud-arrow-up" />
-              </template>
-              上传图片
-            </UButton>
-          </NuxtLink>
           <UButton
             icon="heroicons:arrow-path"
             color="gray"
@@ -80,6 +72,23 @@
           >
             刷新
           </UButton>
+          <UButton
+            icon="heroicons:trash"
+            color="gray"
+            variant="outline"
+            size="sm"
+            @click="handleClearCache"
+          >
+            清理浏览器缓存
+          </UButton>
+          <NuxtLink to="/">
+            <UButton color="primary" variant="soft" size="sm">
+              <template #leading>
+                <UIcon name="heroicons:cloud-arrow-up" />
+              </template>
+              上传图片
+            </UButton>
+          </NuxtLink>
         </div>
       </div>
     </UCard>
@@ -134,11 +143,11 @@
         class="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer"
         @click="viewImage(image)"
       >
-        <img
+        <!-- 列表使用缓存优化，首次加载后极速 -->
+        <CachedImage
           :src="image.url"
           :alt="image.filename"
           class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-          loading="lazy"
         />
 
         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -202,11 +211,16 @@
         </template>
 
         <div v-if="currentImage" class="space-y-4">
+          <!-- 模态框显示原图 - 不使用缓存，保证质量 -->
           <img
             :src="currentImage.url"
             :alt="currentImage.filename"
             class="w-full rounded-lg"
+            loading="eager"
           />
+          <div class="text-xs text-amber-600 dark:text-amber-400 text-center">
+            ✨ 原图质量 · 未压缩
+          </div>
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span class="text-gray-600 dark:text-gray-400">文件名:</span>
@@ -258,6 +272,7 @@
 <script setup lang="ts">
 const toast = useLightToast()
 const store = useGuestTokenStore()
+const { clearCache, getCacheStats } = useImageCache()
 
 // 状态
 const loading = ref(false)
@@ -306,17 +321,19 @@ const loadImages = async () => {
 
   loading.value = true
   try {
-    const data = await store.getUploads(currentPage.value, 50)
+    // 优化：减少每页数量到20张
+    const pageSize = 20
+    const data = await store.getUploads(currentPage.value, pageSize)
 
     images.value = (data.uploads || []).map((item: any) => ({
       id: item.encrypted_id || item.file_id,
-      url: item.image_url,
+      url: item.image_url,  // 统一使用原图URL，通过缓存优化
       filename: item.original_filename,
       uploadTime: formatDate(item.created_at),
       size: formatFileSize(item.file_size || 0)
     }))
 
-    totalPages.value = Math.max(1, Math.ceil((data.total_uploads || 0) / 50))
+    totalPages.value = Math.max(1, Math.ceil((data.total_uploads || 0) / pageSize))
   } catch (error: any) {
     toast.error('加载失败', error.message)
   } finally {
@@ -414,7 +431,22 @@ const downloadImage = (image: any) => {
   link.download = image.filename
   link.click()
 }
+// 清理浏览器缓存
+const handleClearCache = async () => {
+  try {
+    const stats = await getCacheStats()
+    const sizeMB = (stats.size / 1024 / 1024).toFixed(2)
+    
+    if (confirm(`确定要清理浏览器缓存吗？\n\n浏览器缓存：${stats.count} 张图片，共 ${sizeMB} MB\n\n清理后首次加载会稍慢，但可释放本地存储空间。`)) {
+      await clearCache()
+      toast.success('浏览器缓存已清理', `已清理 ${stats.count} 张缓存图片`)
+    }
+  } catch (error) {
+    toast.error('清理失败', '请稍后重试')
+  }
+}
 
+// 
 // 监听token变化，重新加载图片
 watch(() => store.token, async (newToken) => {
   if (newToken) {

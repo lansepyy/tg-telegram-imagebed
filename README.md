@@ -99,12 +99,29 @@ docker-compose up -d
 
 ### Docker 部署（推荐）
 
-#### 使用 Docker Compose
+#### 方式一：使用Docker Hub镜像（最简单）
+
+```bash
+# 拉取最新稳定版本
+docker pull lansepyy/tg-telegram-imagebed:latest
+
+# 或拉取Beta测试版本
+docker pull lansepyy/tg-telegram-imagebed:beta
+
+# 使用docker-compose启动（latest版本）
+docker-compose -f docker-compose.dockerhub.yml up -d
+
+# 或启动beta版本
+docker-compose -f docker-compose.beta.yml up -d
+```
+
+#### 方式二：使用 Docker Compose 本地构建
 
 ```yaml
 services:
   telegram-imagebed:
-    image: xiyan520/tg-telegram-imagebed:latest
+    build: .
+    image: telegram-imagebed:latest
     container_name: telegram-imagebed
     ports:
       - "18793:18793"
@@ -118,17 +135,36 @@ services:
 docker-compose up -d
 ```
 
-#### 使用 Docker 命令
+#### 方式三：使用 Docker 命令
 
 ```bash
+# Latest稳定版本
 docker run -d \
   --name telegram-imagebed \
   -p 18793:18793 \
   --env-file .env \
   -v ./data:/app/data \
   --restart unless-stopped \
-  xiyan520/tg-telegram-imagebed:latest
+  lansepyy/tg-telegram-imagebed:latest
+
+# Beta测试版本
+docker run -d \
+  --name telegram-imagebed-beta \
+  -p 18793:18793 \
+  --env-file .env \
+  -v ./data:/app/data \
+  --restart unless-stopped \
+  lansepyy/tg-telegram-imagebed:beta
 ```
+
+#### 版本说明
+
+| 标签 | 说明 | 更新频率 |
+|------|------|---------|
+| `latest` | 最新稳定版本 | 每次推送到main分支 |
+| `beta` | 最新测试版本 | 手动触发Beta发布 |
+| `beta-N` | 特定Beta版本号 | 每次Beta发布自动递增 |
+| `YYYYMMDD-hash` | 带日期的版本 | 每次推送到main分支 |
 
 ### 手动部署
 
@@ -499,9 +535,35 @@ A:
 
 ---
 
+
 ## 📝 更新日志
 
-### 最新更新
+### v2.2.0 (2025-12-19)
+
+#### 代码冲突修复与功能整合
+- 🔧 修复Git合并冲突，成功整合v2.1.0所有功能
+- ✅ Telegram Bot完整支持**压缩**和**不压缩**图片上传
+- ✅ 统一 `handle_file` 处理器，兼容 `photo` 和 `document` 两种类型
+- ✅ 前端主题切换功能（浅色/深色模式）完整可用
+- ✅ 版本信息弹窗和更新日志展示功能
+- ✅ 优化前端布局，添加GitHub链接和版本信息
+- ✅ 完善Docker配置和项目文档
+- ✅ 代码库冲突清理，项目结构更加清晰
+
+### v2.1.0 (2025-12-18)
+
+#### 浏览器缓存与用户体验优化
+- ✅ 新增浏览器本地缓存系统（IndexedDB）
+- ✅ 新增主题切换功能（浅色/深色模式）
+- ✅ 新增版本更新日志弹窗
+- ✅ 支持Telegram不压缩图片上传（Document类型）
+- ✅ 优化相册分页数量（50张→20张）
+- ✅ 优化图片缓存策略（7天自动过期）
+- ✅ 区分浏览器缓存和CDN缓存清理
+- ✅ 相册二次访问速度提升98%
+- ✅ 缓存管理支持统计和一键清理
+
+### 历史版本
 
 #### 多存储支持
 - ✅ 支持 Telegram / S3 / 本地 / Rclone 四种存储驱动
@@ -526,6 +588,7 @@ A:
 - ✅ 可配置仅管理员上传
 - ✅ 自动回复 CDN 链接
 - ✅ 可设置回复消息自动删除
+
 
 ---
 

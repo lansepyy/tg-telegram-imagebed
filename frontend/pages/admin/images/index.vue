@@ -41,7 +41,7 @@
             <template #leading>
               <UIcon name="heroicons:arrow-path" />
             </template>
-            清理缓存
+            清理CDN缓存
           </UButton>
         </div>
 
@@ -446,13 +446,13 @@ const confirmDelete = async () => {
   }
 }
 
-// 清理缓存
+// 清理CDN/服务器缓存
 const handleClearCache = async () => {
   try {
     await clearCache()
-    notification.success('成功', '缓存已清理')
+    notification.success('成功', 'CDN缓存已清理')
   } catch (error) {
-    notification.error('错误', '清理缓存失败')
+    notification.error('错误', '清理CDN缓存失败')
   }
 }
 

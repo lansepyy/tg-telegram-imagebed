@@ -1,14 +1,8 @@
 services:
   telegram-imagebed:
-    # 使用Docker Hub镜像（推荐）
-    # image: lansepyy/tg-telegram-imagebed:latest
-    # 或使用Beta版本测试
-    # image: lansepyy/tg-telegram-imagebed:beta
-    
-    # 本地构建（开发时使用）
-    build: .
-    image: telegram-imagebed:latest
-    container_name: telegram-imagebed
+    # 从Docker Hub拉取beta测试版本
+    image: lansepyy/tg-telegram-imagebed:beta
+    container_name: telegram-imagebed-beta
     ports:
       - "18793:18793"
     env_file: .env
@@ -27,4 +21,4 @@ services:
       start_period: 40s
 
 # 项目名称（避免中文路径问题）
-name: telegram-imagebed
+name: telegram-imagebed-beta
