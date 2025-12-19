@@ -1,20 +1,23 @@
 # ==================== 阶段1: 构建前端 ====================
 FROM node:20-alpine AS frontend-builder
 
+# 安装 pnpm
+RUN npm install -g pnpm
+
 # 设置工作目录
 WORKDIR /frontend
 
 # 复制前端依赖文件
-COPY frontend/package*.json ./
+COPY frontend/package*.json frontend/pnpm-lock.yaml ./
 
 # 安装所有依赖（包括开发依赖，构建时需要）
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # 复制前端源码
 COPY frontend/ ./
 
 # 构建前端
-RUN npm run generate
+RUN pnpm run generate
 
 # ==================== 阶段2: 构建最终镜像 ====================
 FROM python:3.11-slim
