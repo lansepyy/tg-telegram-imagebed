@@ -287,7 +287,8 @@ def run_telegram_bot():
 
         # 发送处理中消息
         status_msg = None
-        if reply_enabled:
+        # 群组/频道优化：不发送"正在处理"的临时消息，避免编辑消息导致评论同步失败
+        if reply_enabled and not is_group:
             try:
                 status_msg = await message.reply_text("⏳ 正在处理图片...")
             except Exception:

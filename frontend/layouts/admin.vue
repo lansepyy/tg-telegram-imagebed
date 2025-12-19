@@ -46,8 +46,6 @@
     </UCard>
   </UModal>
 
-  <!-- 版本更新弹窗 -->
-  <VersionModal />
 </template>
 
 <script setup lang="ts">

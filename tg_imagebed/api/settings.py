@@ -294,6 +294,10 @@ def admin_system_settings():
             if 'tg_sync_delete_enabled' in data:
                 settings_to_update['tg_sync_delete_enabled'] = '1' if data['tg_sync_delete_enabled'] else '0'
 
+            # 浏览器缓存配置
+            if 'browser_cache_enabled' in data:
+                settings_to_update['browser_cache_enabled'] = '1' if data['browser_cache_enabled'] else '0'
+
             # 有错误则返回
             if errors:
                 response = jsonify({'success': False, 'error': '; '.join(errors)})

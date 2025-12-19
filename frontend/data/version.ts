@@ -2,9 +2,19 @@
  * 版本信息配置
  */
 export const VERSION_INFO = {
-  version: '2.3.0',
+  version: '2.3.1',
   releaseDate: '2025-12-19',
   updateNotes: [
+    {
+      version: '2.3.1',
+      date: '2025-12-19',
+      type: 'patch',
+      changes: [
+        '🔧 修复 Telegram 频道图集上传时的评论同步问题（优化消息回复逻辑）',
+        '🔧 修复管理后台版本信息按钮点击无响应问题',
+        '🔧 修复“浏览器缓存”设置无法保存和持久化的问题',
+      ]
+    },
     {
       version: '2.3.0',
       date: '2025-12-19',

@@ -74,12 +74,16 @@
           </button>
         </UTooltip>
       </div>
+
+      <!-- 版本信息弹窗 -->
+      <VersionModal v-model="showVersionModal" />
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { VERSION_INFO } from '~/data/version'
+import VersionModal from '~/components/VersionModal.vue'
 
 defineProps<{
   pageTitle?: string
