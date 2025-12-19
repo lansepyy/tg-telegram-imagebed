@@ -88,6 +88,8 @@ def _format_settings_for_response(settings: dict) -> dict:
         'group_upload_delete_delay': _safe_int(settings.get('group_upload_delete_delay'), 0, 0),
         # TG 同步删除
         'tg_sync_delete_enabled': settings.get('tg_sync_delete_enabled', '1') == '1',
+        # 浏览器缓存
+        'browser_cache_enabled': settings.get('browser_cache_enabled', '0') == '1',
     }
 
 
