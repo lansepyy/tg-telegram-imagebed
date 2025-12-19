@@ -2,9 +2,17 @@
  * 版本信息配置
  */
 export const VERSION_INFO = {
-  version: '2.3.4',
+  version: '2.3.5',
   releaseDate: '2025-12-19',
   updateNotes: [
+    {
+      version: '2.3.5',
+      date: '2025-12-19',
+      type: 'patch',
+      changes: [
+        '🔧 修复 Telegram 频道相册并发回复遗漏问题 (增加随机延迟)',
+      ]
+    },
     {
       version: '2.3.4',
       date: '2025-12-19',

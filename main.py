@@ -264,6 +264,11 @@ def run_telegram_bot():
         reply_enabled = True
         delete_delay = 0
         if is_group:
+            # 群组/频道相册并发控制：随机延迟 0.5-2秒，错开回复时间，避免触发评论同步限制
+            import random
+            import asyncio
+            await asyncio.sleep(random.uniform(0.5, 2.0))
+
             # 检查管理员权限
             if str(get_system_setting('group_upload_admin_only') or '0') == '1':
                 admin_raw = str(get_system_setting('group_admin_ids') or '').strip()
