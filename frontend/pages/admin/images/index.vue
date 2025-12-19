@@ -358,6 +358,23 @@ const pageSizeOptions = [
   { label: '200 / 页', value: 200 }
 ]
 
+// 检查浏览器缓存状态
+const checkBrowserCacheStatus = async () => {
+  if (!process.client) return
+  if (images.value.length === 0) return
+  
+  try {
+    const { getCachedImage } = useImageCache()
+    
+    for (const image of images.value) {
+      const cachedUrl = await getCachedImage(image.url)
+      image.browserCached = !!cachedUrl
+    }
+  } catch (e) {
+    console.warn('检查浏览器缓存失败', e)
+  }
+}
+
 // 加载图片列表
 const loadImages = async () => {
   loading.value = true
@@ -464,17 +481,7 @@ const confirmDelete = async () => {
   }
 }
 
-// 检查浏览器缓存状态
-const checkBrowserCacheStatus = async () => {
-  if (images.value.length === 0) return
-  
-  const { getCachedImage } = useImageCache()
-  
-  for (const image of images.value) {
-    const cachedUrl = await getCachedImage(image.url)
-    image.browserCached = !!cachedUrl
-  }
-}
+
 
 
 // 清理CDN/服务器缓存

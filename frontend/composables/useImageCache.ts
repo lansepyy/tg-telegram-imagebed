@@ -22,6 +22,12 @@ let db: IDBDatabase | null = null
 // 初始化 IndexedDB
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
+    // SSR 保护：服务端不存在 indexedDB
+    if (!process.client || typeof indexedDB === 'undefined') {
+      reject(new Error('Not supported'))
+      return
+    }
+
     if (db) {
       resolve(db)
       return
