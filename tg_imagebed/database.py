@@ -988,6 +988,8 @@ DEFAULT_SYSTEM_SETTINGS = {
     'group_upload_delete_delay': '0',
     # TG 同步删除
     'tg_sync_delete_enabled': '1',
+    # 浏览器缓存
+    'browser_cache_enabled': '0',
 }
 
 # 环境变量迁移标记（避免每次启动重复覆盖管理员修改）

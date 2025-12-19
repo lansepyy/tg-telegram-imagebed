@@ -2,9 +2,17 @@
  * 版本信息配置
  */
 export const VERSION_INFO = {
-  version: '2.3.5',
+  version: '2.3.6',
   releaseDate: '2025-12-19',
   updateNotes: [
+    {
+      version: '2.3.6',
+      date: '2025-12-19',
+      type: 'patch',
+      changes: [
+        '🔧 修复浏览器缓存设置无法保存的问题 (后端配置白名单缺失)',
+      ]
+    },
     {
       version: '2.3.5',
       date: '2025-12-19',
