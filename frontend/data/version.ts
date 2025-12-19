@@ -2,9 +2,18 @@
  * 版本信息配置
  */
 export const VERSION_INFO = {
-  version: '2.3.2',
+  version: '2.3.3',
   releaseDate: '2025-12-19',
   updateNotes: [
+    {
+      version: '2.3.3',
+      date: '2025-12-19',
+      type: 'patch',
+      changes: [
+        '✨ 图片管理界面新增“浏览器缓存”状态标记（蓝色徽章）',
+        '✨ 图片详情弹窗新增“浏览器缓存”状态显示',
+      ]
+    },
     {
       version: '2.3.2',
       date: '2025-12-19',

@@ -127,12 +127,21 @@
           </div>
 
           <!-- 缓存状态 -->
-          <div v-if="image.cached" class="absolute top-2 right-2 z-10">
-            <UBadge color="green" variant="solid" size="xs" class="shadow-lg">
+          <div class="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end">
+            <!-- CDN/服务端缓存 -->
+            <UBadge v-if="image.cached" color="green" variant="solid" size="xs" class="shadow-lg">
               <template #leading>
                 <UIcon name="heroicons:check-circle" class="w-3 h-3" />
               </template>
               已缓存
+            </UBadge>
+            
+            <!-- 浏览器本地缓存 -->
+            <UBadge v-if="image.browserCached" color="blue" variant="solid" size="xs" class="shadow-lg">
+              <template #leading>
+                <UIcon name="heroicons:bolt" class="w-3 h-3" />
+              </template>
+              浏览器缓存
             </UBadge>
           </div>
 
@@ -224,9 +233,15 @@
               <span class="font-semibold">{{ selectedImage.uploadTime }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-stone-600 dark:text-stone-400">缓存状态:</span>
+              <span class="text-stone-600 dark:text-stone-400">服务端缓存:</span>
               <UBadge :color="selectedImage.cached ? 'green' : 'gray'" size="xs">
                 {{ selectedImage.cached ? '已缓存' : '未缓存' }}
+              </UBadge>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-stone-600 dark:text-stone-400">浏览器缓存:</span>
+              <UBadge :color="selectedImage.browserCached ? 'blue' : 'gray'" size="xs">
+                {{ selectedImage.browserCached ? '已缓存' : '未缓存' }}
               </UBadge>
             </div>
 
@@ -359,6 +374,9 @@ const loadImages = async () => {
     // 重置选择状态，避免保留旧页的勾选
     selectedImages.value = []
     selectAll.value = false
+    
+    // 检查浏览器缓存
+    await checkBrowserCacheStatus()
   } catch (error) {
     notification.error('错误', '加载图片列表失败')
   } finally {
@@ -445,6 +463,19 @@ const confirmDelete = async () => {
     deleting.value = false
   }
 }
+
+// 检查浏览器缓存状态
+const checkBrowserCacheStatus = async () => {
+  if (images.value.length === 0) return
+  
+  const { getCachedImage } = useImageCache()
+  
+  for (const image of images.value) {
+    const cachedUrl = await getCachedImage(image.url)
+    image.browserCached = !!cachedUrl
+  }
+}
+
 
 // 清理CDN/服务器缓存
 const handleClearCache = async () => {
