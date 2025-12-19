@@ -267,7 +267,12 @@ def run_telegram_bot():
             # 群组/频道相册并发控制：随机延迟 0.5-2秒，错开回复时间，避免触发评论同步限制
             import random
             import asyncio
-            await asyncio.sleep(random.uniform(0.5, 2.0))
+
+            # 针对频道相册（Channel Album）增加更长的延迟，避免评论区并发冲突
+            if chat_type == 'channel':
+                await asyncio.sleep(random.uniform(2.0, 5.0))
+            else:
+                await asyncio.sleep(random.uniform(0.5, 2.0))
 
             # 检查管理员权限
             if str(get_system_setting('group_upload_admin_only') or '0') == '1':
@@ -370,8 +375,21 @@ def run_telegram_bot():
                     await status_msg.edit_text(text, parse_mode='Markdown')
                     reply_msg_id = status_msg.message_id
                 else:
-                    sent = await message.reply_text(text, parse_mode='Markdown')
-                    reply_msg_id = sent.message_id
+                    # 增加重试机制，应对频道/群组高频回复限制
+                    retry_count = 3
+                    for attempt in range(retry_count):
+                        try:
+                            sent = await message.reply_text(text, parse_mode='Markdown')
+                            reply_msg_id = sent.message_id
+                            break
+                        except telegram.error.RetryAfter as e:
+                            logger.warning(f"Reply rate limited, waiting {e.retry_after}s")
+                            await asyncio.sleep(e.retry_after + 1)
+                        except Exception as e:
+                            if attempt == retry_count - 1:
+                                logger.error(f"Failed to reply after {retry_count} attempts: {e}")
+                            else:
+                                await asyncio.sleep(1)
 
                 # 群组延迟删除回复（后台执行，不阻塞）
                 if is_group and delete_delay > 0 and reply_msg_id:

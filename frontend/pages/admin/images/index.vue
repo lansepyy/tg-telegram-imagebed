@@ -108,7 +108,7 @@
           ]"
         >
           <img
-            :src="image.url"
+            :src="image.displayUrl || image.url"
             :alt="image.filename"
             loading="lazy"
             decoding="async"
@@ -358,22 +358,7 @@ const pageSizeOptions = [
   { label: '200 / 页', value: 200 }
 ]
 
-// 检查浏览器缓存状态
-const checkBrowserCacheStatus = async () => {
-  if (!process.client) return
-  if (images.value.length === 0) return
-  
-  try {
-    const { getCachedImage } = useImageCache()
-    
-    for (const image of images.value) {
-      const cachedUrl = await getCachedImage(image.url)
-      image.browserCached = !!cachedUrl
-    }
-  } catch (e) {
-    console.warn('检查浏览器缓存失败', e)
-  }
-}
+
 
 // 加载图片列表
 const loadImages = async () => {
@@ -385,15 +370,27 @@ const loadImages = async () => {
       filter: filterType.value,
       search: searchQuery.value
     })
-    images.value = data.images
+    
+    // 初始化 displayUrl 为原始 URL
+    const { loadImage } = useImageCache()
+    const processedImages = await Promise.all(data.images.map(async (img: any) => {
+      // 尝试加载缓存图片的 Blob URL
+      // 如果缓存启用且存在，loadImage 会返回 Blob URL，否则返回原图 URL
+      const displayUrl = await loadImage(img.url)
+      return {
+        ...img,
+        displayUrl: displayUrl,
+        // 如果 displayUrl 开头是 blob:，说明使用了缓存
+        browserCached: displayUrl.startsWith('blob:')
+      }
+    }))
+
+    images.value = processedImages
     totalPages.value = data.totalPages
     totalCount.value = data.total ?? data.images.length
     // 重置选择状态，避免保留旧页的勾选
     selectedImages.value = []
     selectAll.value = false
-    
-    // 检查浏览器缓存
-    await checkBrowserCacheStatus()
   } catch (error) {
     notification.error('错误', '加载图片列表失败')
   } finally {
