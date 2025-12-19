@@ -220,6 +220,65 @@
         </div>
       </UCard>
 
+      <!-- 浏览器缓存配置 -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <UIcon name="heroicons:archive-box" class="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-stone-900 dark:text-white">浏览器缓存</h3>
+                <p class="text-xs text-stone-500 dark:text-stone-400">配置 IndexedDB 本地缓存加速</p>
+              </div>
+            </div>
+            <UToggle v-model="settings.browser_cache_enabled" size="lg" />
+          </div>
+        </template>
+
+        <!-- 浏览器缓存未开启提示 -->
+        <div v-if="!settings.browser_cache_enabled" class="p-4 bg-stone-50 dark:bg-neutral-800 rounded-xl">
+          <div class="flex items-center gap-3">
+            <UIcon name="heroicons:information-circle" class="w-5 h-5 text-stone-400" />
+            <p class="text-sm text-stone-500 dark:text-stone-400">
+              浏览器缓存未开启。开启后将使用 IndexedDB 缓存已访问的图片缩略图，大幅提升二次加载速度。
+            </p>
+          </div>
+        </div>
+
+        <!-- 浏览器缓存配置详情 -->
+        <div v-else class="space-y-4">
+          <div class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+            <div class="flex items-start gap-3">
+              <UIcon name="heroicons:information-circle" class="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p class="font-medium text-indigo-800 dark:text-indigo-200">关于浏览器缓存</p>
+                <ul class="text-sm text-indigo-600 dark:text-indigo-300 mt-2 space-y-1">
+                  <li>• 使用 IndexedDB 存储已访问的图片缩略图</li>
+                  <li>• 最多缓存 500 张图片，超过后自动清理最旧的缓存</li>
+                  <li>• 缓存 7 天后自动过期，确保图片更新</li>
+                  <li>• 仅缓存缩略图，原图始终从网络加载保证质量</li>
+                  <li>• 二次访问速度提升可达 98%</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <div class="flex items-start gap-3">
+              <UIcon name="heroicons:exclamation-triangle" class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p class="font-medium text-amber-800 dark:text-amber-200">注意事项</p>
+                <p class="text-sm text-amber-600 dark:text-amber-300 mt-1">
+                  浏览器缓存存储在用户本地，清除浏览器数据会同时清除缓存。缓存仅对当前浏览器有效，不同设备或浏览器需要分别缓存。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
       <!-- 游客上传策略 -->
       <UCard>
         <template #header>
@@ -468,11 +527,17 @@ definePageMeta({
 
 const runtimeConfig = useRuntimeConfig()
 const notification = useNotification()
+const systemSettingsStore = useSystemSettingsStore()
 
 const loading = ref(false)
 const saving = ref(false)
 const revokingTokens = ref(false)
 const settingsLoaded = ref(false)
+
+// 监听浏览器缓存开关变化，同步到 store
+watch(() => settings.value.browser_cache_enabled, (newValue) => {
+  systemSettingsStore.setBrowserCacheEnabled(newValue)
+})
 
 const settings = ref({
   // 游客上传策略
@@ -500,6 +565,8 @@ const settings = ref({
   cdn_redirect_enabled: false,
   cdn_redirect_max_count: 2,
   cdn_redirect_delay: 10,
+  // 浏览器缓存配置
+  browser_cache_enabled: false,
 })
 
 const originalSettings = ref<typeof settings.value | null>(null)

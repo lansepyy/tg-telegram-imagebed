@@ -128,6 +128,90 @@
       </NuxtLink>
     </div>
 
+    <!-- 浏览器缓存管理 -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+              <UIcon name="heroicons:archive-box" class="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-stone-900 dark:text-white">浏览器缓存管理</h3>
+              <p class="text-xs text-stone-500 dark:text-stone-400">IndexedDB 本地缓存统计与清理</p>
+            </div>
+          </div>
+          <UButton
+            icon="heroicons:arrow-path"
+            color="gray"
+            variant="outline"
+            size="sm"
+            :loading="loadingCache"
+            @click="loadCacheStats"
+          >
+            刷新
+          </UButton>
+        </div>
+      </template>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 缓存统计 -->
+        <div class="p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
+          <div class="flex items-center gap-2 mb-2">
+            <UIcon name="heroicons:photo" class="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            <p class="text-sm font-medium text-stone-600 dark:text-stone-400">缓存项数量</p>
+          </div>
+          <p class="text-2xl font-bold text-stone-900 dark:text-white">
+            {{ cacheStats.count }} 项
+          </p>
+          <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+            最多缓存 500 项
+          </p>
+        </div>
+
+        <div class="p-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
+          <div class="flex items-center gap-2 mb-2">
+            <UIcon name="heroicons:cube" class="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            <p class="text-sm font-medium text-stone-600 dark:text-stone-400">缓存大小</p>
+          </div>
+          <p class="text-2xl font-bold text-stone-900 dark:text-white">
+            {{ formatCacheSize(cacheStats.size) }}
+          </p>
+          <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+            缓存 7 天后自动过期
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+        <div class="flex items-start gap-3">
+          <UIcon name="heroicons:information-circle" class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div class="flex-1">
+            <p class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">关于浏览器缓存</p>
+            <p class="text-xs text-amber-700 dark:text-amber-300">
+              浏览器缓存使用 IndexedDB 存储已访问的图片缩略图，加速二次加载。缓存会在 7 天后自动过期，或在超过 500 项时自动清理最旧的缓存。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            color="red"
+            variant="outline"
+            :loading="clearingCache"
+            @click="handleClearCache"
+          >
+            <template #leading>
+              <UIcon name="heroicons:trash" />
+            </template>
+            清空浏览器缓存
+          </UButton>
+        </div>
+      </template>
+    </UCard>
+
     <!-- 系统配置 -->
     <UCard>
       <template #header>
@@ -215,11 +299,15 @@ definePageMeta({
 
 const notification = useNotification()
 const { getAdminStats } = useImageApi()
+const { getCacheStats, clearCache } = useImageCache()
 
 // 状态
 const loading = ref(false)
+const loadingCache = ref(false)
+const clearingCache = ref(false)
 const stats = ref<any>({})
 const systemConfig = ref<any>({})
+const cacheStats = ref({ count: 0, size: 0 })
 
 // 加载统计信息
 const loadStats = async () => {
@@ -237,8 +325,50 @@ const loadStats = async () => {
   }
 }
 
+// 加载浏览器缓存统计
+const loadCacheStats = async () => {
+  loadingCache.value = true
+  try {
+    cacheStats.value = await getCacheStats()
+  } catch (error) {
+    console.error('加载缓存统计失败:', error)
+  } finally {
+    loadingCache.value = false
+  }
+}
+
+// 清空浏览器缓存
+const handleClearCache = async () => {
+  if (!confirm('确定要清空所有浏览器缓存吗？此操作不可撤销。')) {
+    return
+  }
+
+  clearingCache.value = true
+  try {
+    await clearCache()
+    await loadCacheStats()
+    notification.success('清理成功', '浏览器缓存已清空')
+  } catch (error) {
+    console.error('清理缓存失败:', error)
+    notification.error('清理失败', '无法清空浏览器缓存')
+  } finally {
+    clearingCache.value = false
+  }
+}
+
+// 格式化缓存大小
+const formatCacheSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
 // 页面加载
-onMounted(() => {
-  loadStats()
+onMounted(async () => {
+  await Promise.all([
+    loadStats(),
+    loadCacheStats()
+  ])
 })
 </script>

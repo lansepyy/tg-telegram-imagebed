@@ -57,7 +57,7 @@ const getCachedImage = async (url: string): Promise<string | null> => {
       request.onsuccess = () => {
         if (request.result) {
           const cached = request.result as CachedImage
-          
+
           // 检查缓存是否过期
           const now = Date.now()
           const expireTime = CACHE_EXPIRE_DAYS * 24 * 60 * 60 * 1000
@@ -69,7 +69,7 @@ const getCachedImage = async (url: string): Promise<string | null> => {
             resolve(null)
             return
           }
-          
+
           const blobUrl = URL.createObjectURL(cached.blob)
           resolve(blobUrl)
         } else {
@@ -87,13 +87,13 @@ const getCachedImage = async (url: string): Promise<string | null> => {
 const cacheImage = async (url: string, blob: Blob): Promise<void> => {
   try {
     const database = await initDB()
-    
+
     // 检查缓存数量，超过限制则删除最旧的
     await cleanupOldCache(database)
 
     const transaction = database.transaction([STORE_NAME], 'readwrite')
     const objectStore = transaction.objectStore(STORE_NAME)
-    
+
     const cachedImage: CachedImage = {
       url,
       blob,
@@ -148,20 +148,29 @@ const loadImage = async (url: string, useCache = true): Promise<string> => {
     return url
   }
 
-  // 2. 尝试从缓存获取
+  // 2. 检查浏览器缓存开关是否启用
+  if (process.client) {
+    const systemSettings = useSystemSettingsStore()
+    if (!systemSettings.browserCacheEnabled) {
+      // 缓存未启用，直接返回原URL
+      return url
+    }
+  }
+
+  // 3. 尝试从缓存获取
   const cachedUrl = await getCachedImage(url)
   if (cachedUrl) {
     return cachedUrl
   }
 
-  // 3. 从网络加载并缓存
+  // 4. 从网络加载并缓存
   try {
     const response = await fetch(url)
     const blob = await response.blob()
-    
+
     // 异步缓存，不阻塞返回
     cacheImage(url, blob)
-    
+
     return URL.createObjectURL(blob)
   } catch (error) {
     console.error('加载图片失败:', error)

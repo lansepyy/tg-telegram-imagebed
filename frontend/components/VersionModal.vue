@@ -72,7 +72,7 @@
       <template #footer>
         <div class="flex justify-between items-center">
           <a
-            href="https://github.com/yourusername/tg-telegram-imagebed"
+            href="https://github.com/lansepyy/tg-telegram-imagebed"
             target="_blank"
             class="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center gap-1"
           >

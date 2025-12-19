@@ -175,15 +175,8 @@
             &copy; {{ new Date().getFullYear() }} 图床 Pro
           </div>
           <div class="flex items-center gap-4">
-            <button
-              @click="showVersionModal = true"
-              class="group flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 bg-stone-100 dark:bg-stone-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
-            >
-              <UIcon name="heroicons:information-circle" class="w-4 h-4" />
-              <span>v{{ version }}</span>
-            </button>
             <a
-              href="https://github.com/yourusername/tg-telegram-imagebed"
+              href="https://github.com/lansepyy/tg-telegram-imagebed"
               target="_blank"
               class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 bg-stone-100 dark:bg-stone-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
             >
@@ -197,15 +190,10 @@
 
     <!-- 公告弹窗 -->
     <AnnouncementModal />
-    
-    <!-- 版本更新弹窗 -->
-    <VersionModal v-model="showVersionModal" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { VERSION_INFO } from '~/data/version'
-
 const config = useRuntimeConfig()
 const mobileMenuOpen = ref(false)
 const guestStore = useGuestTokenStore()
@@ -219,10 +207,6 @@ const isDark = computed(() => colorMode.value === 'dark')
 const toggleTheme = () => {
   colorMode.preference = isDark.value ? 'light' : 'dark'
 }
-
-// 版本信息
-const version = VERSION_INFO.version
-const showVersionModal = ref(false)
 
 // 统计数据
 const stats = ref<any>({})
