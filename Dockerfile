@@ -24,11 +24,8 @@ WORKDIR /app
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
-# 复制前端依赖文件
-COPY frontend/package.json frontend/package-lock.json ./
-
-# 复制全部前端源码（确保 nuxt.config.ts、pages、components、assets 等都被复制）
-COPY frontend/ ./
+    gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制 requirements.txt
