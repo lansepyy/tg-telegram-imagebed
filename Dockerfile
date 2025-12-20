@@ -8,7 +8,7 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 
 # 安装所有依赖（包括开发依赖，构建时需要）
-RUN npm ci
+RUN npm install
 
 # 复制前端源码
 COPY frontend/ ./
