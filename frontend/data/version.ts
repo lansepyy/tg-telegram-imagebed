@@ -1,6 +1,16 @@
 export const VERSION_INFO = {
-  version: "2.0.2",
+  version: "2.0.3",
   updateNotes: [
+    {
+      version: "2.0.3",
+      date: "2025-12-21",
+      type: "patch",
+      changes: [
+        "修复管理页 Logo 重影及跳转问题",
+        "Telegram 机器人升级为「集装箱」模式：静默收集多图，统一回复第一张图片消息",
+        "优化前端版本弹窗逻辑"
+      ]
+    },
     {
       version: "2.0.2",
       date: "2025-12-20",
@@ -8,8 +18,7 @@ export const VERSION_INFO = {
       changes: [
         "管理页顶部添加Logo并支持点击跳转主页",
         "主页移除版本信息按钮，版本弹窗仅在管理页显示",
-        "主题切换按钮在主页和管理页均可用",
-        "同步主分支与beta分支所有修复"
+        "主题切换按钮在主页和管理页均可用"
       ]
     },
     {
