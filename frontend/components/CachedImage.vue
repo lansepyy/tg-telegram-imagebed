@@ -30,36 +30,14 @@ const props = defineProps<{
   useCache?: boolean  // 是否使用缓存，默认true（列表缩略图用缓存，查看原图不用）
 }>()
 
-const { loadImage } = useImageCache()
-const displayUrl = ref('')
+const displayUrl = computed(() => props.src)
 const loading = ref(true)
 const className = computed(() => props.class || '')
 
-// 加载图片（列表缩略图用缓存，原图不用）
-const load = async () => {
-  try {
-    loading.value = true
-    const shouldCache = props.useCache !== false  // 默认true
-    displayUrl.value = await loadImage(props.src, shouldCache)
-  } catch (error) {
-    console.error('图片加载失败:', error)
-    displayUrl.value = props.src // 降级使用原URL
-    loading.value = false
-  }
-}
-
 const handleError = () => {
   loading.value = false
-  displayUrl.value = props.src
 }
 
-// 监听src变化
-watch(() => props.src, load, { immediate: true })
-
-onUnmounted(() => {
-  // 清理 blob URL
-  if (displayUrl.value.startsWith('blob:')) {
-    URL.revokeObjectURL(displayUrl.value)
-  }
-})
+// 监听图片加载
+watch(() => props.src, () => { loading.value = true }, { immediate: true })
 </script>

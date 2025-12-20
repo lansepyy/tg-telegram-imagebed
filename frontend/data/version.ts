@@ -2,9 +2,17 @@
  * 版本信息配置
  */
 export const VERSION_INFO = {
-  version: '2.3.8',
+  version: '2.3.9',
   releaseDate: '2025-12-20',
   updateNotes: [
+    {
+      version: '2.3.9',
+      date: '2025-12-20',
+      type: 'major',
+      changes: [
+        '🧩 频道多图上传“集装箱”模式：自动聚合同一 media_group 的所有图片，仅在第一张图下回复，评论内容包含全部图片直链，彻底解决频道相册评论只显示一条的问题，防止刷屏。',
+      ]
+    },
     {
       version: '2.3.8',
       date: '2025-12-20',

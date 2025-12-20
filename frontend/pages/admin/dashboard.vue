@@ -107,17 +107,7 @@
               <h3 class="font-semibold text-stone-900 dark:text-white">系统设置</h3>
               <p class="text-sm text-stone-500 dark:text-stone-400">游客模式、上传限制</p>
             </div>
-            <UIcon name="heroicons:chevron-right" class="w-5 h-5 text-stone-400 group-hover:text-amber-500 transition-colors" />
-          </div>
-        </UCard>
-      </NuxtLink>
-
-      <NuxtLink to="/admin/announcements">
-        <UCard class="hover:shadow-lg hover:border-amber-400 dark:hover:border-amber-500 transition-all cursor-pointer group">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <UIcon name="heroicons:megaphone" class="w-6 h-6 text-white" />
-            </div>
+          <!-- 已移除浏览器图片缓存相关UI -->
             <div class="flex-1">
               <h3 class="font-semibold text-stone-900 dark:text-white">公告管理</h3>
               <p class="text-sm text-stone-500 dark:text-stone-400">编辑系统公告</p>

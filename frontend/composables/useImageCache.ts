@@ -12,38 +12,7 @@ const CACHE_EXPIRE_DAYS = 7 // 缓存7天后过期，保证图片更新
 
 interface CachedImage {
   url: string
-  blob: Blob
-  timestamp: number
-  size: number
-}
 
-let db: IDBDatabase | null = null
-
-// 初始化 IndexedDB
-const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    // SSR 保护：服务端不存在 indexedDB
-    if (!process.client || typeof indexedDB === 'undefined') {
-      reject(new Error('Not supported'))
-      return
-    }
-
-    if (db) {
-      resolve(db)
-      return
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => {
-      db = request.result
-      resolve(db)
-    }
-
-    request.onupgradeneeded = (event) => {
-      const database = (event.target as IDBOpenDBRequest).result
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
         const objectStore = database.createObjectStore(STORE_NAME, { keyPath: 'url' })
         objectStore.createIndex('timestamp', 'timestamp', { unique: false })
       }

@@ -1,3 +1,16 @@
+import asyncio
+from collections import defaultdict
+
+# ========== Media Group 聚合缓存 ========== #
+MEDIA_GROUP_CACHE = defaultdict(list)  # {media_group_id: [msg_info, ...]}
+MEDIA_GROUP_TIMER = {}  # {media_group_id: asyncio.Task}
+MEDIA_GROUP_LOCK = asyncio.Lock()
+
+def _clear_media_group(media_group_id):
+    MEDIA_GROUP_CACHE.pop(media_group_id, None)
+    task = MEDIA_GROUP_TIMER.pop(media_group_id, None)
+    if task:
+        task.cancel()
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -261,15 +274,82 @@ def run_telegram_bot():
         chat_type = (getattr(chat, 'type', '') or '').lower()
         is_group = chat_type in ('group', 'supergroup', 'channel')
 
-        # 检查是否为频道相册多图，若是则拆分为单图处理
+        # 集装箱模式：频道/群组多图聚合，仅回复第一条
         if chat_type == 'channel' and hasattr(message, 'media_group_id') and message.media_group_id:
-            # 获取 media group 的所有消息
-            media_group = update.get_media_group()
-            if media_group:
-                for msg in media_group:
-                    fake_update = Update.de_json(msg.to_dict(), context.bot)
-                    await handle_file(fake_update, context)
+            media_group_id = message.media_group_id
+            msg_info = {
+                'message_id': message.message_id,
+                'file_id': None,
+                'file_unique_id': None,
+                'filename': None,
+                'content_type': None,
+                'update': update,
+            }
+            if message.photo:
+                photo = message.photo[-1]
+                msg_info['file_id'] = photo.file_id
+                msg_info['file_unique_id'] = photo.file_unique_id
+                msg_info['filename'] = f"telegram_{photo.file_id[:12]}.jpg"
+                msg_info['content_type'] = 'image/jpeg'
+            elif message.document and message.document.mime_type and message.document.mime_type.startswith('image/'):
+                doc = message.document
+                msg_info['file_id'] = doc.file_id
+                msg_info['file_unique_id'] = doc.file_unique_id
+                msg_info['filename'] = doc.file_name or f"telegram_{doc.file_id[:12]}.jpg"
+                msg_info['content_type'] = doc.mime_type or 'image/jpeg'
+            else:
                 return
+
+            async with MEDIA_GROUP_LOCK:
+                MEDIA_GROUP_CACHE[media_group_id].append(msg_info)
+                # 重置定时器
+                if media_group_id in MEDIA_GROUP_TIMER:
+                    MEDIA_GROUP_TIMER[media_group_id].cancel()
+                MEDIA_GROUP_TIMER[media_group_id] = asyncio.create_task(_media_group_reply_later(media_group_id, context))
+            return
+
+async def _media_group_reply_later(media_group_id, context, delay=3.5):
+    await asyncio.sleep(delay)
+    async with MEDIA_GROUP_LOCK:
+        msg_list = MEDIA_GROUP_CACHE.get(media_group_id, [])
+        if not msg_list:
+            return
+        # 找到 message_id 最小的那条
+        anchor = min(msg_list, key=lambda x: x['message_id'])
+        # 生成所有图片的直链
+        from tg_imagebed.utils import get_domain
+        from tg_imagebed.services.file_service import record_existing_telegram_file
+        from tg_imagebed.database import get_system_setting
+        base_url = get_domain(None)
+        links = []
+        for info in msg_list:
+            file_info = await context.bot.get_file(info['file_id'])
+            file_bytes = await file_info.download_as_bytearray()
+            result = record_existing_telegram_file(
+                file_id=info['file_id'],
+                file_unique_id=info['file_unique_id'],
+                file_path=getattr(file_info, 'file_path', '') or '',
+                file_content=bytes(file_bytes),
+                filename=info['filename'],
+                content_type=info['content_type'],
+                username='channel',
+                source='telegram_group',
+                is_group_upload=True,
+                group_message_id=info['message_id'],
+                group_chat_id=None,
+            )
+            if result:
+                url = f"{base_url}/image/{result['encrypted_id']}"
+                links.append(f"[{info['filename']}]({url})")
+        if links:
+            text = '✅ *上传成功！*\n\n' + '\n'.join(links)
+            anchor_update = anchor['update']
+            anchor_msg = anchor_update.effective_message
+            try:
+                await anchor_msg.reply_text(text, parse_mode='Markdown', disable_web_page_preview=True)
+            except Exception as e:
+                logger.error(f"MediaGroup聚合回复失败: {e}")
+        _clear_media_group(media_group_id)
 
         # 群组/频道：执行权限检查
         reply_enabled = True

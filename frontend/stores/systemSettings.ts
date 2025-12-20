@@ -1,13 +1,13 @@
 /**
  * 系统设置 Store
- * 管理全局系统设置，包括浏览器缓存开关等
+* 管理全局系统设置
  */
 
 import { defineStore } from 'pinia'
 
 export const useSystemSettingsStore = defineStore('systemSettings', {
     state: () => ({
-        browserCacheEnabled: false,
+        // browserCacheEnabled: false,
         settingsLoaded: false,
     }),
 
@@ -21,7 +21,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', {
                 if (saved) {
                     try {
                         const settings = JSON.parse(saved)
-                        this.browserCacheEnabled = settings.browser_cache_enabled ?? false
+                        // this.browserCacheEnabled = settings.browser_cache_enabled ?? false
                     } catch (error) {
                         console.error('加载系统设置失败:', error)
                     }
@@ -34,7 +34,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', {
          * 设置浏览器缓存开关
          */
         setBrowserCacheEnabled(enabled: boolean) {
-            this.browserCacheEnabled = enabled
+            // this.browserCacheEnabled = enabled
             this.saveSettings()
         },
 
@@ -44,7 +44,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', {
         saveSettings() {
             if (process.client) {
                 const settings = {
-                    browser_cache_enabled: this.browserCacheEnabled,
+                    // browser_cache_enabled: this.browserCacheEnabled,
                 }
                 localStorage.setItem('system_settings', JSON.stringify(settings))
             }
@@ -61,7 +61,7 @@ export const useSystemSettingsStore = defineStore('systemSettings', {
                 })
 
                 if (response.success && response.data) {
-                    this.browserCacheEnabled = response.data.browser_cache_enabled ?? false
+                    // this.browserCacheEnabled = response.data.browser_cache_enabled ?? false
                     this.saveSettings()
                 }
             } catch (error) {
