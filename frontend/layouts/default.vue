@@ -71,14 +71,6 @@
             >
               <UIcon :name="isDark ? 'heroicons:sun' : 'heroicons:moon'" class="w-5 h-5" />
             </button>
-            <!-- 版本信息按钮 -->
-            <button
-              @click="versionModalOpen = true"
-              class="p-2.5 text-stone-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
-              title="版本信息"
-            >
-              <UIcon name="heroicons:information-circle" class="w-5 h-5" />
-            </button>
             <NuxtLink to="/admin" class="relative px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-lg transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
               管理
             </NuxtLink>
@@ -179,8 +171,6 @@
 
     <!-- 公告弹窗 -->
     <AnnouncementModal />
-    <!-- 版本信息弹窗 -->
-    <VersionModal v-model="versionModalOpen" />
   </div>
 </template>
 
@@ -197,9 +187,6 @@ const isDark = computed(() => colorMode.value === 'dark')
 const toggleTheme = () => {
   colorMode.preference = isDark.value ? 'light' : 'dark'
 }
-
-// 版本弹窗
-const versionModalOpen = ref(false)
 
 // 统计数据
 const stats = ref<any>({})
@@ -343,3 +330,4 @@ onUnmounted(() => {
   animation-delay: 6s;
 }
 </style>
+
