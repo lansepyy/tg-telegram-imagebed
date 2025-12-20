@@ -543,19 +543,19 @@ def run_telegram_bot():
                 if batch.first_message_id is None or message.message_id < batch.first_message_id:
                     batch.first_message_id = message.message_id
 
-                # 首张图片时发送状态消息
-                if batch.status_message_id is None:
-                    try:
-                        status_msg = await message.reply_text("⏳ 正在处理相册图片，请稍候...")
-                        batch.status_message_id = status_msg.message_id
-                    except Exception:
-                        pass
+                # 首张图片时不发送状态消息，实现静默收集
+                # if batch.status_message_id is None:
+                #     try:
+                #         status_msg = await message.reply_text("⏳ 正在处理相册图片，请稍候...")
+                #         batch.status_message_id = status_msg.message_id
+                #     except Exception:
+                #         pass
 
-                # 重置 debounce 定时器
+                # 重置 debounce 定时器 (调整为 3 秒)
                 if batch.flush_task:
                     batch.flush_task.cancel()
                 batch.flush_task = asyncio.create_task(
-                    _flush_media_group(batch_key, context.bot, debounce_seconds=1.5)
+                    _flush_media_group(batch_key, context.bot, debounce_seconds=3.0)
                 )
                 return
 
