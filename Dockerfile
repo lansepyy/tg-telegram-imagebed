@@ -2,10 +2,10 @@
 FROM node:20-alpine AS frontend-builder
 
 # 设置工作目录
-WORKDIR /frontend
+WORKDIR /app
 
 # 复制前端依赖文件
-COPY frontend/package*.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 
 # 安装所有依赖（包括开发依赖，构建时需要）
 RUN npm ci
