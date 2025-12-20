@@ -1,6 +1,17 @@
 export const VERSION_INFO = {
-  version: "2.0.1",
+  version: "2.0.2",
   updateNotes: [
+    {
+      version: "2.0.2",
+      date: "2025-12-20",
+      type: "patch",
+      changes: [
+        "管理页顶部添加Logo并支持点击跳转主页",
+        "主页移除版本信息按钮，版本弹窗仅在管理页显示",
+        "主题切换按钮在主页和管理页均可用",
+        "同步主分支与beta分支所有修复"
+      ]
+    },
     {
       version: "2.0.1",
       date: "2025-12-20",
