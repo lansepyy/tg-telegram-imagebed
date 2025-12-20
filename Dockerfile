@@ -42,7 +42,7 @@ COPY main.py .
 COPY tg_imagebed/ ./tg_imagebed/
 
 # 从前端构建阶段复制构建产物
-COPY --from=frontend-builder /frontend/.output/public /app/frontend/.output/public
+COPY --from=frontend-builder /app/.output/public /app/frontend/.output/public
 
 # 暴露端口
 EXPOSE 18793
