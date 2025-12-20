@@ -2,9 +2,17 @@
  * 版本信息配置
  */
 export const VERSION_INFO = {
-  version: '2.3.7',
-  releaseDate: '2025-12-19',
+  version: '2.3.8',
+  releaseDate: '2025-12-20',
   updateNotes: [
+    {
+      version: '2.3.8',
+      date: '2025-12-20',
+      type: 'patch',
+      changes: [
+        '✨ 频道多图上传时自动拆分为单图上传，每张图片都能生成独立评论（彻底解决频道相册评论只在第一张的问题）',
+      ]
+    },
     {
       version: '2.3.7',
       date: '2025-12-19',

@@ -247,10 +247,11 @@ def run_telegram_bot():
             return set()
 
     async def handle_file(update: Update, context):
-        """处理图片上传（私聊/群组/频道）- 支持压缩photo和不压缩document"""
+        """处理图片上传（私聊/群组/频道/相册）- 支持每张图片单独回复"""
         from tg_imagebed.services.file_service import process_upload, record_existing_telegram_file
         from tg_imagebed.utils import get_domain
         from tg_imagebed.database import get_system_setting
+        import random, asyncio
 
         message = update.effective_message
         chat = update.effective_chat
@@ -260,15 +261,21 @@ def run_telegram_bot():
         chat_type = (getattr(chat, 'type', '') or '').lower()
         is_group = chat_type in ('group', 'supergroup', 'channel')
 
+        # 检查是否为频道相册多图，若是则拆分为单图处理
+        if chat_type == 'channel' and hasattr(message, 'media_group_id') and message.media_group_id:
+            # 获取 media group 的所有消息
+            media_group = update.get_media_group()
+            if media_group:
+                for msg in media_group:
+                    fake_update = Update.de_json(msg.to_dict(), context.bot)
+                    await handle_file(fake_update, context)
+                return
+
         # 群组/频道：执行权限检查
         reply_enabled = True
         delete_delay = 0
         if is_group:
             # 群组/频道相册并发控制：随机延迟 0.5-2秒，错开回复时间，避免触发评论同步限制
-            import random
-            import asyncio
-
-            # 针对频道相册（Channel Album）增加更长的延迟，避免评论区并发冲突
             if chat_type == 'channel':
                 await asyncio.sleep(random.uniform(2.0, 5.0))
             else:
@@ -326,7 +333,6 @@ def run_telegram_bot():
             file_info = await context.bot.get_file(file_id)
             file_bytes = await file_info.download_as_bytearray()
 
-
             if is_group:
                 # 群组/频道:不做二次上传,直接记录原始 file_id/file_path
                 result = record_existing_telegram_file(
@@ -336,7 +342,6 @@ def run_telegram_bot():
                     file_content=bytes(file_bytes),
                     filename=filename,
                     content_type=content_type,
-
                     username=username,
                     source='telegram_group',
                     is_group_upload=True,
@@ -349,7 +354,6 @@ def run_telegram_bot():
                     file_content=bytes(file_bytes),
                     filename=filename,
                     content_type=content_type,
-
                     username=username,
                     source='telegram_bot',
                     is_group_upload=False,
@@ -382,14 +386,15 @@ def run_telegram_bot():
                             sent = await message.reply_text(text, parse_mode='Markdown')
                             reply_msg_id = sent.message_id
                             break
-                        except telegram.error.RetryAfter as e:
-                            logger.warning(f"Reply rate limited, waiting {e.retry_after}s")
-                            await asyncio.sleep(e.retry_after + 1)
                         except Exception as e:
-                            if attempt == retry_count - 1:
-                                logger.error(f"Failed to reply after {retry_count} attempts: {e}")
+                            if hasattr(e, 'retry_after'):
+                                logger.warning(f"Reply rate limited, waiting {e.retry_after}s")
+                                await asyncio.sleep(e.retry_after + 1)
                             else:
-                                await asyncio.sleep(1)
+                                if attempt == retry_count - 1:
+                                    logger.error(f"Failed to reply after {retry_count} attempts: {e}")
+                                else:
+                                    await asyncio.sleep(1)
 
                 # 群组延迟删除回复（后台执行，不阻塞）
                 if is_group and delete_delay > 0 and reply_msg_id:

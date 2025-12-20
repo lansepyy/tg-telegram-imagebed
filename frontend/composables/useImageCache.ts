@@ -1,13 +1,13 @@
 /**
  * 图片缓存管理 - 使用 IndexedDB 本地存储
  * 已访问图片永久缓存，极速二次加载
- * 注意：只缓存列表缩略图，原图始终从网络加载保证质量
+ * 原图和缩略图均可缓存，提升加载速度
  */
 
 const DB_NAME = 'imagebed-cache'
 const DB_VERSION = 1
-const STORE_NAME = 'thumbnails'  // 明确只缓存缩略图
-const MAX_CACHE_SIZE = 500 // 最多缓存500张缩略图
+const STORE_NAME = 'images'  // 原图和缩略图都缓存
+const MAX_CACHE_SIZE = 500 // 最多缓存500张图片（原图+缩略图）
 const CACHE_EXPIRE_DAYS = 7 // 缓存7天后过期，保证图片更新
 
 interface CachedImage {
@@ -147,29 +147,24 @@ const cleanupOldCache = async (database: IDBDatabase): Promise<void> => {
   })
 }
 
-// 获取图片（优先缓存）- 只用于缩略图
+// 获取图片（优先缓存）- 原图和缩略图都支持
 const loadImage = async (url: string, useCache = true): Promise<string> => {
-  // 1. 如果禁用缓存（查看原图时），直接加载
-  if (!useCache) {
-    return url
-  }
-
-  // 2. 检查浏览器缓存开关是否启用
+  // 1. 检查浏览器缓存开关是否启用
   if (process.client) {
     const systemSettings = useSystemSettingsStore()
-    if (!systemSettings.browserCacheEnabled) {
-      // 缓存未启用，直接返回原URL
+    if (!systemSettings.browserCacheEnabled || !useCache) {
+      // 缓存未启用或强制禁用，直接返回原URL
       return url
     }
   }
 
-  // 3. 尝试从缓存获取
+  // 2. 尝试从缓存获取
   const cachedUrl = await getCachedImage(url)
   if (cachedUrl) {
     return cachedUrl
   }
 
-  // 4. 从网络加载并缓存
+  // 3. 从网络加载并缓存
   try {
     const response = await fetch(url)
     const blob = await response.blob()
