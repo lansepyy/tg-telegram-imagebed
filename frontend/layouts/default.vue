@@ -63,6 +63,22 @@
               <div class="absolute inset-0 bg-amber-50 dark:bg-amber-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </NuxtLink>
             <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+            <!-- 主题切换按钮 -->
+            <button
+              @click="toggleTheme"
+              class="p-2.5 text-stone-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
+              :title="isDark ? '切换到浅色模式' : '切换到深色模式'"
+            >
+              <UIcon :name="isDark ? 'heroicons:sun' : 'heroicons:moon'" class="w-5 h-5" />
+            </button>
+            <!-- 版本信息按钮 -->
+            <button
+              @click="versionModalOpen = true"
+              class="p-2.5 text-stone-600 dark:text-stone-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
+              title="版本信息"
+            >
+              <UIcon name="heroicons:information-circle" class="w-5 h-5" />
+            </button>
             <NuxtLink to="/admin" class="relative px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-lg transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
               管理
             </NuxtLink>
@@ -163,6 +179,8 @@
 
     <!-- 公告弹窗 -->
     <AnnouncementModal />
+    <!-- 版本信息弹窗 -->
+    <VersionModal v-model="versionModalOpen" />
   </div>
 </template>
 
@@ -172,6 +190,16 @@ const mobileMenuOpen = ref(false)
 const guestStore = useGuestTokenStore()
 const { getStats } = useImageApi()
 const { onStatsRefresh } = useStatsRefresh()
+
+// 主题切换
+const colorMode = useColorMode()
+const isDark = computed(() => colorMode.value === 'dark')
+const toggleTheme = () => {
+  colorMode.preference = isDark.value ? 'light' : 'dark'
+}
+
+// 版本弹窗
+const versionModalOpen = ref(false)
 
 // 统计数据
 const stats = ref<any>({})
