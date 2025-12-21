@@ -77,60 +77,52 @@
     </UCard>
 
     <!-- 日志内容 -->
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-stone-900 dark:text-white">日志内容</h2>
-          <UBadge color="gray" variant="subtle">
-            {{ logs.length }} 条记录
-          </UBadge>
-        </div>
-      </template>
+    <div class="bg-black rounded-lg border border-gray-700 overflow-hidden">
+      <!-- 头部 -->
+      <div class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700">
+        <h2 class="text-sm font-semibold text-green-400 font-mono flex items-center gap-2">
+          <span class="text-green-500">❯</span>
+          SYSTEM LOGS
+        </h2>
+        <UBadge color="gray" variant="solid" class="bg-gray-800 text-gray-300">
+          {{ filteredLogs.length }} 条记录
+        </UBadge>
+      </div>
 
-      <div v-if="loading && logs.length === 0" class="flex items-center justify-center py-12">
+      <!-- 加载中状态 -->
+      <div v-if="loading && logs.length === 0" class="flex items-center justify-center py-12 bg-black">
         <div class="text-center">
-          <UIcon name="heroicons:arrow-path" class="w-8 h-8 text-stone-400 animate-spin" />
-          <p class="mt-2 text-sm text-stone-500 dark:text-stone-400">加载日志中...</p>
+          <UIcon name="heroicons:arrow-path" class="w-8 h-8 text-green-500 animate-spin" />
+          <p class="mt-2 text-sm text-green-400 font-mono">Loading...</p>
         </div>
       </div>
 
-      <div v-else-if="logs.length === 0" class="flex items-center justify-center py-12">
+      <!-- 空状态 -->
+      <div v-else-if="logs.length === 0" class="flex items-center justify-center py-12 bg-black">
         <div class="text-center">
-          <UIcon name="heroicons:document-text" class="w-12 h-12 text-stone-300 dark:text-stone-600" />
-          <p class="mt-2 text-sm text-stone-500 dark:text-stone-400">暂无日志</p>
+          <UIcon name="heroicons:document-text" class="w-12 h-12 text-gray-600" />
+          <p class="mt-2 text-sm text-gray-500 font-mono">No logs found</p>
         </div>
       </div>
 
-      <div v-else class="space-y-2">
-        <!-- 日志列表 -->
+      <!-- 日志列表 -->
+      <div v-else class="p-4 bg-black space-y-1 max-h-[600px] overflow-y-auto custom-scrollbar">
         <div
           v-for="(log, index) in filteredLogs"
           :key="index"
-          class="relative rounded-lg border p-3 transition-colors"
-          :class="getLogClass(log)"
+          class="flex items-start gap-2 py-1 hover:bg-gray-900/50 transition-colors font-mono text-sm"
         >
-          <div class="flex items-start gap-3">
-            <!-- 日志级别图标 -->
-            <div class="flex-shrink-0 mt-0.5">
-              <UIcon :name="getLogIcon(log)" class="w-5 h-5" :class="getLogIconClass(log)" />
-            </div>
-
-            <!-- 日志内容 -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <UBadge :color="getLogLevelColor(log)" variant="subtle" size="xs">
-                  {{ getLogLevel(log) }}
-                </UBadge>
-                <span class="text-xs text-stone-500 dark:text-stone-400">
-                  {{ getLogTime(log) }}
-                </span>
-              </div>
-              <pre class="text-sm text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words font-mono">{{ getLogMessage(log) }}</pre>
-            </div>
-          </div>
+          <!-- 行号 -->
+          <span class="text-gray-600 select-none min-w-[3rem] text-right">{{ index + 1 }}</span>
+          
+          <!-- 级别标识 -->
+          <span class="select-none" :class="getLogLevelClass(log)">[■]</span>
+          
+          <!-- 日志内容 -->
+          <pre class="flex-1 whitespace-pre-wrap break-words" :class="getLogTextClass(log)">{{ log }}</pre>
         </div>
       </div>
-    </UCard>
+    </div>
   </div>
 </template>
 
@@ -334,6 +326,40 @@ const getLogLevelColor = (log: string): string => {
   }
 }
 
+// 获取日志级别颜色（终端风格）
+const getLogLevelClass = (log: string): string => {
+  const level = getLogLevel(log)
+  switch (level) {
+    case 'ERROR':
+    case 'CRITICAL':
+      return 'text-red-500'
+    case 'WARNING':
+      return 'text-yellow-500'
+    case 'DEBUG':
+      return 'text-cyan-500'
+    case 'INFO':
+    default:
+      return 'text-green-500'
+  }
+}
+
+// 获取日志文本颜色（终端风格）
+const getLogTextClass = (log: string): string => {
+  const level = getLogLevel(log)
+  switch (level) {
+    case 'ERROR':
+    case 'CRITICAL':
+      return 'text-red-400'
+    case 'WARNING':
+      return 'text-yellow-400'
+    case 'DEBUG':
+      return 'text-cyan-400'
+    case 'INFO':
+    default:
+      return 'text-gray-300'
+  }
+}
+
 // 监听自动刷新
 watch(autoRefresh, (enabled) => {
   if (enabled) {
@@ -360,3 +386,23 @@ onUnmounted(() => {
   }
 })
 </script>
+
+<style scoped>
+/* 终端风格滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #000;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+</style>
