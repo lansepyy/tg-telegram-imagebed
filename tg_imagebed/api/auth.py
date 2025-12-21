@@ -202,6 +202,8 @@ def upload_with_token():
 
     # 获取并验证 Token
     token = _extract_bearer_token()
+    logger.info(f"[Token上传] 提取到的token: {token[:20] if token else 'None'}... 完整长度: {len(token) if token else 0}")
+    
     if not token:
         response = jsonify({'success': False, 'error': '未提供Token'})
         response.headers['Access-Control-Allow-Origin'] = '*'
