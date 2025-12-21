@@ -23,6 +23,7 @@ from ..database import (
 )
 from ..services.cdn_service import cloudflare_cdn, add_to_cdn_monitor, get_monitor_queue_size
 from ..services.file_service import process_upload
+from ..services.cache_service import get_cache_service
 from ..storage.router import get_storage_router, reload_storage_router, _load_storage_config
 
 # 导入 admin_module 用于登录验证装饰器
@@ -208,6 +209,19 @@ def admin_cdn_stats():
     data = get_cdn_dashboard_stats(window_hours=window_hours)
     data['monitor'] = {'queue_size': get_monitor_queue_size()}
     data['cloudflare'] = {'cdn_domain': _get_cdn_domain() or None}
+    
+    # 添加本地缓存统计
+    try:
+        cache_service = get_cache_service()
+        cache_count, cache_size = cache_service.get_cache_size()
+        data['local_cache'] = {
+            'file_count': cache_count,
+            'total_size': cache_size,
+            'total_size_formatted': format_size(cache_size)
+        }
+    except Exception as e:
+        logger.error(f"获取本地缓存统计失败: {e}")
+        data['local_cache'] = {'error': str(e)}
 
     return add_cache_headers(jsonify({'success': True, 'data': data}), 'no-cache')
 
@@ -216,30 +230,61 @@ def admin_cdn_stats():
 @admin_bp.route('/api/admin/clear-cache', methods=['POST', 'OPTIONS'])
 @admin_module.login_required
 def clear_cache():
-    """清理 CDN 缓存（仅限管理员）"""
+    """清理 CDN 缓存和本地缓存（仅限管理员）"""
     import time
     from .. import config as app_config
+
+    data = request.get_json() or {}
+    clear_type = data.get('type', 'all')  # all, cdn, local
 
     # 更新静态版本号（强制客户端刷新静态资源）
     new_version = str(int(time.time()))
     app_config.STATIC_VERSION = new_version
 
+    results = {}
+
+    # 清理本地缓存
+    if clear_type in ('all', 'local'):
+        try:
+            cache_service = get_cache_service()
+            deleted_count, freed_bytes = cache_service.clear_all()
+            results['local_cache'] = {
+                'success': True,
+                'deleted_files': deleted_count,
+                'freed_bytes': freed_bytes,
+                'freed_size': format_size(freed_bytes)
+            }
+        except Exception as e:
+            logger.error(f"清理本地缓存失败: {e}")
+            results['local_cache'] = {'success': False, 'error': str(e)}
+
+    # 清理 CDN 缓存
     cloudflare_success = False
-    cdn_domain = _get_cdn_domain()
-    cloudflare_cdn._refresh_config()  # 确保配置已从数据库加载
-    if cdn_domain and cloudflare_cdn.zone_id:
-        if cloudflare_cdn.purge_all():
-            message = '缓存已清理，Cloudflare缓存已清除'
-            cloudflare_success = True
+    if clear_type in ('all', 'cdn'):
+        cdn_domain = _get_cdn_domain()
+        cloudflare_cdn._refresh_config()  # 确保配置已从数据库加载
+        if cdn_domain and cloudflare_cdn.zone_id:
+            if cloudflare_cdn.purge_all():
+                cloudflare_success = True
+                results['cdn_cache'] = {'success': True, 'message': 'Cloudflare缓存已清除'}
+            else:
+                results['cdn_cache'] = {'success': False, 'message': 'Cloudflare缓存清除失败'}
         else:
-            message = '缓存已清理，但Cloudflare缓存清除失败'
-    else:
-        message = '缓存已清理'
+            results['cdn_cache'] = {'success': False, 'message': 'CDN未配置'}
+
+    message_parts = []
+    if clear_type in ('all', 'local') and results.get('local_cache', {}).get('success'):
+        message_parts.append(f"本地缓存已清理 ({results['local_cache']['deleted_files']} 文件)")
+    if clear_type in ('all', 'cdn') and cloudflare_success:
+        message_parts.append('CDN缓存已清除')
+    
+    message = '，'.join(message_parts) if message_parts else '缓存清理完成'
 
     return jsonify({
         'success': True,
         'message': message,
-        'static_version': new_version
+        'static_version': new_version,
+        'details': results
     })
 
 

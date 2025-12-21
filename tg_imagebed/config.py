@@ -88,6 +88,10 @@ def _parse_id_list(raw: str) -> List[int]:
 GROUP_ADMIN_ID_LIST: List[int] = _parse_id_list(GROUP_ADMIN_IDS)
 GROUP_UPLOAD_ALLOWED_CHAT_ID_LIST: List[int] = _parse_id_list(GROUP_UPLOAD_ALLOWED_CHAT_IDS)
 
+# ===================== 本地缓存配置 =====================
+IMAGE_CACHE_DIR = os.getenv("IMAGE_CACHE_DIR", "/app/image")
+IMAGE_CACHE_ENABLED = os.getenv("IMAGE_CACHE_ENABLED", "true").lower() == "true"
+
 # ===================== CDN 相关配置（已迁移到数据库，此处仅为首次启动迁移用） =====================
 CDN_ENABLED = os.getenv("CDN_ENABLED", "false").lower() == "true"
 CDN_CACHE_TTL = int(os.getenv("CDN_CACHE_TTL", "31536000"))
