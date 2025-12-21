@@ -1526,12 +1526,15 @@ def check_local_cache():
 
     try:
         from ..services.cache_service import get_cache_service
-        from ..database import get_all_files
+        from ..database import get_connection
         
         cache_service = get_cache_service()
         
         # 获取所有文件
-        all_files = get_all_files()
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT encrypted_id, filename FROM file_storage')
+            all_files = [dict(row) for row in cursor.fetchall()]
         
         checked_count = 0
         cached_count = 0
