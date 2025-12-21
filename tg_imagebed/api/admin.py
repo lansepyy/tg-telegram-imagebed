@@ -1447,7 +1447,7 @@ def get_logs():
     """获取或清空系统日志（管理员）"""
     if request.method == 'OPTIONS':
         response = jsonify({'success': True})
-        response = add_cache_headers(response, cache=False)
+        response = add_cache_headers(response, cache_type='no-cache')
         return response
 
     # DELETE - 清空日志
@@ -1460,12 +1460,12 @@ def get_logs():
                     f.write('')
                 logger.info('系统日志已被管理员清空')
             response = jsonify({'success': True, 'message': '日志已清空'})
-            response = add_cache_headers(response, cache=False)
+            response = add_cache_headers(response, cache_type='no-cache')
             return response
         except Exception as e:
             logger.error(f'清空日志失败: {str(e)}')
             response = jsonify({'success': False, 'error': '清空日志失败'})
-            response = add_cache_headers(response, cache=False)
+            response = add_cache_headers(response, cache_type='no-cache')
             return response, 500
 
     # GET - 获取日志
@@ -1505,11 +1505,11 @@ def get_logs():
             'success': True,
             'logs': [log.strip() for log in logs if log.strip()]
         })
-        response = add_cache_headers(response, cache=False)
+        response = add_cache_headers(response, cache_type='no-cache')
         return response
 
     except Exception as e:
         logger.error(f'获取日志失败: {str(e)}')
         response = jsonify({'success': False, 'error': '获取日志失败'})
-        response = add_cache_headers(response, cache=False)
+        response = add_cache_headers(response, cache_type='no-cache')
         return response, 500
