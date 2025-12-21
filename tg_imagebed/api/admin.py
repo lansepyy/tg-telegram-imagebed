@@ -212,16 +212,19 @@ def admin_cdn_stats():
     
     # 添加本地缓存统计
     try:
+        from ..database import get_system_setting
+        cache_enabled = get_system_setting('local_cache_enabled') == '1'
         cache_service = get_cache_service()
         cache_count, cache_size = cache_service.get_cache_size()
-        data['local_cache'] = {
+        data['localCache'] = {
+            'enabled': cache_enabled,
             'file_count': cache_count,
-            'total_size': cache_size,
-            'total_size_formatted': format_size(cache_size)
+            'total_size': format_size(cache_size),
+            'total_size_bytes': cache_size
         }
     except Exception as e:
         logger.error(f"获取本地缓存统计失败: {e}")
-        data['local_cache'] = {'error': str(e)}
+        data['localCache'] = {'enabled': False, 'error': str(e)}
 
     return add_cache_headers(jsonify({'success': True, 'data': data}), 'no-cache')
 

@@ -658,12 +658,18 @@ def register_admin_routes(app, DATABASE_PATH, get_all_files_count, get_total_siz
             # 从 system_settings 读取 CDN 域名配置（与 settings.py 保持一致）
             cdn_domain = ''
             cdn_enabled = False
+            cache_service = None
+            local_cache_enabled = False
             try:
                 from .database import get_system_setting
+                from .services.cache_service import get_cache_service
                 cdn_enabled = str(get_system_setting('cdn_enabled') or '0') == '1'
                 cdn_domain = str(get_system_setting('cloudflare_cdn_domain') or '').strip()
+                local_cache_enabled = str(get_system_setting('local_cache_enabled') or '0') == '1'
+                if local_cache_enabled:
+                    cache_service = get_cache_service()
             except Exception as e:
-                logger.debug(f"读取 CDN 域名配置失败: {e}")
+                logger.debug(f"读取 CDN/缓存配置失败: {e}")
 
             for img in images:
                 img['url'] = f"{base_url}/image/{img['encrypted_id']}"
@@ -673,6 +679,18 @@ def register_admin_routes(app, DATABASE_PATH, get_all_files_count, get_total_siz
                 img['size'] = img.get('file_size', 0)
                 img['uploadTime'] = img.get('created_at', '未知时间')
                 img['cached'] = bool(img.get('cdn_cached', 0))
+                
+                # 检查本地缓存状态
+                if cache_service:
+                    try:
+                        from pathlib import Path
+                        path_for_ext = img.get('original_filename') or ''
+                        file_ext = Path(path_for_ext).suffix or '.jpg'
+                        img['local_cached'] = cache_service.exists(img['encrypted_id'], file_ext)
+                    except Exception:
+                        img['local_cached'] = False
+                else:
+                    img['local_cached'] = False
 
             response_data = {
                 'success': True,

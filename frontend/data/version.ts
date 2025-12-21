@@ -1,6 +1,18 @@
 export const VERSION_INFO = {
-  version: "2.0.5",
+  version: "2.0.6",
   updateNotes: [
+    {
+      version: "2.0.6",
+      date: "2025-12-21",
+      type: "patch",
+      changes: [
+        "本地缓存逻辑优化：始终优先读取本地缓存（即使关闭开关），仅控制是否写入新缓存",
+        "本地缓存默认状态改为关闭，需手动开启才会缓存新图片",
+        "新增 X-Cache-Enabled 响应头，明确标识缓存开关状态",
+        "图片管理列表 API 返回 local_cached 字段，支持详情模态框显示缓存状态",
+        "完善日志输出：区分缓存读取/写入/跳过等操作"
+      ]
+    },
     {
       version: "2.0.5",
       date: "2025-12-21",

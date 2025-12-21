@@ -264,20 +264,17 @@
             </div>
           </div>
 
-          <UFormGroup label="缓存路径后缀">
+          <UFormGroup label="缓存目录">
             <UInput 
               v-model="settings.local_cache_path" 
-              placeholder="/cache（留空使用默认 /app/image）"
-            >
-              <template #leading>
-                <span class="text-stone-500 dark:text-stone-400 text-sm">/app/image</span>
-              </template>
-            </UInput>
+              placeholder="留空默认为 /app/image"
+            />
             <template #hint>
-              <span class="text-xs text-stone-500">
-                只需填写后缀部分，例如填写 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/cache</code> 
-                实际路径为 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/app/image/cache</code>
-              </span>
+              <div class="text-xs text-stone-500 space-y-1">
+                <p>• 留空：使用默认路径 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/app/image</code></p>
+                <p>• 填写子目录：例如填写 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/cache</code>，实际路径为 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/app/image/cache</code></p>
+                <p>• 填写完整路径：例如 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/data/cache</code> 将使用绝对路径</p>
+              </div>
             </template>
           </UFormGroup>
 
@@ -575,8 +572,8 @@ const settings = ref({
   cdn_redirect_enabled: false,
   cdn_redirect_max_count: 2,
   cdn_redirect_delay: 10,
-  // 本地缓存配置
-  local_cache_enabled: true,
+  // 本地缓存配置（默认关闭）
+  local_cache_enabled: false,
   local_cache_path: '',
 })
 

@@ -974,8 +974,8 @@ DEFAULT_SYSTEM_SETTINGS = {
     'storage_active_backend': 'telegram',
     'storage_config_json': '',
     'storage_upload_policy_json': '',
-    # 本地缓存配置
-    'local_cache_enabled': '1',  # 0/1
+    # 本地缓存配置（默认关闭）
+    'local_cache_enabled': '0',  # 0/1
     'local_cache_path': '',  # 相对路径，如 /cache 或空（默认/app/image）
     # CDN 配置（默认不开启）
     'cdn_enabled': '0',
