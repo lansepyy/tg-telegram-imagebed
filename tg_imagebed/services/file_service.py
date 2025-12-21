@@ -15,6 +15,7 @@ from ..config import STORAGE_CHAT_ID, CLOUDFLARE_CDN_DOMAIN, logger
 from ..database import save_file_info, get_file_info, update_file_path_in_db
 from ..utils import encrypt_file_id, get_mime_type
 from .cdn_service import add_to_cdn_monitor
+from .cache_service import get_cache_service
 from ..storage.router import get_storage_router
 from ..bot_control import get_effective_bot_token
 
@@ -251,6 +252,18 @@ def process_upload(
     # 添加到 CDN 监控
     add_to_cdn_monitor(encrypted_id, file_data['upload_time'])
 
+    # 写入本地缓存（如果启用）
+    try:
+        from ..database import get_system_setting
+        cache_enabled = str(get_system_setting('local_cache_enabled') or '1') == '1'
+        if cache_enabled:
+            from pathlib import Path
+            file_ext = Path(filename).suffix or '.jpg'
+            cache_service = get_cache_service()
+            cache_service.put(encrypted_id, file_content, file_ext)
+    except Exception as e:
+        logger.warning(f"写入缓存失败: {encrypted_id}, error={e}")
+
     logger.info(f"文件上传完成: {filename} -> {encrypted_id}")
 
     return {
@@ -322,6 +335,19 @@ def record_existing_telegram_file(
     }
     save_file_info(encrypted_id, file_data)
     add_to_cdn_monitor(encrypted_id, upload_time)
+
+    # 写入本地缓存（群组/频道上传的图片，如果启用）
+    if file_content:
+        try:
+            from ..database import get_system_setting
+            cache_enabled = str(get_system_setting('local_cache_enabled') or '1') == '1'
+            if cache_enabled:
+                from pathlib import Path
+                file_ext = Path(filename).suffix or '.jpg'
+                cache_service = get_cache_service()
+                cache_service.put(encrypted_id, file_content, file_ext)
+        except Exception as e:
+            logger.warning(f"写入缓存失败: {encrypted_id}, error={e}")
 
     logger.info(f"已记录 Telegram 既有文件: {filename} -> {encrypted_id}")
 

@@ -10,8 +10,11 @@ services:
       # 确保数据库和日志在挂载的 data 目录下
       - DATABASE_PATH=/app/data/telegram_imagebed.db
       - LOG_FILE=/app/data/telegram_imagebed.log
+      # 图片缓存目录
+      - IMAGE_CACHE_DIR=/app/image
     volumes:
       - ./data:/app/data
+      - ./image:/app/image
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:18793/api/health', timeout=5)"]
