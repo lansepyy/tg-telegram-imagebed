@@ -1533,7 +1533,7 @@ def check_local_cache():
         # 获取所有文件
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT encrypted_id, filename FROM file_storage')
+            cursor.execute('SELECT encrypted_id, original_filename FROM file_storage')
             all_files = [dict(row) for row in cursor.fetchall()]
         
         checked_count = 0
@@ -1542,7 +1542,7 @@ def check_local_cache():
         
         for file_info in all_files:
             encrypted_id = file_info.get('encrypted_id')
-            filename = file_info.get('filename', '')
+            filename = file_info.get('original_filename', '')
             file_ext = os.path.splitext(filename)[1] if filename else ''
             
             if not encrypted_id:
