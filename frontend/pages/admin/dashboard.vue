@@ -78,6 +78,23 @@
           </div>
         </div>
       </UCard>
+
+      <UCard class="hover:shadow-lg transition-shadow">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+            <UIcon name="heroicons:server-stack" class="w-6 h-6 text-white" />
+          </div>
+          <div class="flex-1">
+            <p class="text-sm text-stone-500 dark:text-stone-400">本地缓存</p>
+            <p class="text-2xl font-bold text-stone-900 dark:text-white">
+              {{ stats.localCache?.enabled ? (stats.localCache?.total_size || '--') : '未启用' }}
+            </p>
+            <p v-if="stats.localCache?.enabled" class="text-xs text-stone-500 dark:text-stone-400 mt-1">
+              {{ stats.localCache?.file_count || 0 }} 个文件
+            </p>
+          </div>
+        </div>
+      </UCard>
     </div>
 
     <!-- 快捷入口 -->

@@ -127,12 +127,20 @@
           </div>
 
           <!-- 缓存状态 -->
-          <div v-if="image.cached" class="absolute top-2 right-2 z-10">
-            <UBadge color="green" variant="solid" size="xs" class="shadow-lg">
+          <div class="absolute top-2 right-2 z-10 flex flex-col gap-1.5">
+            <!-- CDN 缓存 -->
+            <UBadge v-if="image.cached" color="green" variant="solid" size="xs" class="shadow-lg">
               <template #leading>
-                <UIcon name="heroicons:check-circle" class="w-3 h-3" />
+                <UIcon name="heroicons:cloud" class="w-3 h-3" />
               </template>
-              已缓存
+              CDN
+            </UBadge>
+            <!-- 本地缓存 -->
+            <UBadge v-if="image.local_cached" color="blue" variant="solid" size="xs" class="shadow-lg">
+              <template #leading>
+                <UIcon name="heroicons:server" class="w-3 h-3" />
+              </template>
+              本地
             </UBadge>
           </div>
 
@@ -224,9 +232,21 @@
               <span class="font-semibold">{{ selectedImage.uploadTime }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-stone-600 dark:text-stone-400">缓存状态:</span>
+              <span class="text-stone-600 dark:text-stone-400">CDN 缓存:</span>
               <UBadge :color="selectedImage.cached ? 'green' : 'gray'" size="xs">
+                <template v-if="selectedImage.cached" #leading>
+                  <UIcon name="heroicons:cloud" class="w-3 h-3" />
+                </template>
                 {{ selectedImage.cached ? '已缓存' : '未缓存' }}
+              </UBadge>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-stone-600 dark:text-stone-400">本地缓存:</span>
+              <UBadge :color="selectedImage.local_cached ? 'blue' : 'gray'" size="xs">
+                <template v-if="selectedImage.local_cached" #leading>
+                  <UIcon name="heroicons:server" class="w-3 h-3" />
+                </template>
+                {{ selectedImage.local_cached ? '已缓存' : '未缓存' }}
               </UBadge>
             </div>
 

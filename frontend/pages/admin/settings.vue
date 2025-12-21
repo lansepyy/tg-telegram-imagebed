@@ -220,6 +220,81 @@
         </div>
       </UCard>
 
+      <!-- 本地缓存配置 -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+                <UIcon name="heroicons:server-stack" class="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-stone-900 dark:text-white">本地缓存</h3>
+                <p class="text-xs text-stone-500 dark:text-stone-400">减少 Telegram API 请求，提升访问速度</p>
+              </div>
+            </div>
+            <UToggle v-model="settings.local_cache_enabled" size="lg" />
+          </div>
+        </template>
+
+        <!-- 缓存未开启提示 -->
+        <div v-if="!settings.local_cache_enabled" class="p-4 bg-stone-50 dark:bg-neutral-800 rounded-xl">
+          <div class="flex items-center gap-3">
+            <UIcon name="heroicons:information-circle" class="w-5 h-5 text-stone-400" />
+            <p class="text-sm text-stone-500 dark:text-stone-400">
+              本地缓存未开启。开启后可将图片缓存到本地磁盘，大幅减少对 Telegram API 的请求。
+            </p>
+          </div>
+        </div>
+
+        <!-- 缓存配置详情 -->
+        <div v-else class="space-y-6">
+          <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+            <div class="flex items-start gap-3">
+              <UIcon name="heroicons:light-bulb" class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div class="text-sm">
+                <p class="font-medium text-amber-900 dark:text-amber-200">工作原理</p>
+                <ul class="mt-2 space-y-1 text-amber-700 dark:text-amber-300">
+                  <li>• 上传时自动缓存图片到本地磁盘</li>
+                  <li>• 访问时优先从本地缓存读取（&lt; 10ms）</li>
+                  <li>• 缓存未命中时从 TG 获取并自动缓存</li>
+                  <li>• 与原有存储后端独立，不影响 TG/Local/S3/Rclone 选择</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <UFormGroup label="缓存路径后缀">
+            <UInput 
+              v-model="settings.local_cache_path" 
+              placeholder="/cache（留空使用默认 /app/image）"
+            >
+              <template #leading>
+                <span class="text-stone-500 dark:text-stone-400 text-sm">/app/image</span>
+              </template>
+            </UInput>
+            <template #hint>
+              <span class="text-xs text-stone-500">
+                只需填写后缀部分，例如填写 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/cache</code> 
+                实际路径为 <code class="px-1 py-0.5 bg-stone-100 dark:bg-neutral-800 rounded">/app/image/cache</code>
+              </span>
+            </template>
+          </UFormGroup>
+
+          <div class="p-4 bg-stone-50 dark:bg-neutral-800 rounded-xl">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-medium text-stone-900 dark:text-white">磁盘空间提示</p>
+                <p class="text-sm text-stone-500 dark:text-stone-400 mt-1">
+                  每张图片完整缓存，需确保足够的磁盘空间
+                </p>
+              </div>
+              <UIcon name="heroicons:exclamation-triangle" class="w-6 h-6 text-amber-500" />
+            </div>
+          </div>
+        </div>
+      </UCard>
+
       <!-- 游客上传策略 -->
       <UCard>
         <template #header>
@@ -500,6 +575,9 @@ const settings = ref({
   cdn_redirect_enabled: false,
   cdn_redirect_max_count: 2,
   cdn_redirect_delay: 10,
+  // 本地缓存配置
+  local_cache_enabled: true,
+  local_cache_path: '',
 })
 
 const originalSettings = ref<typeof settings.value | null>(null)
