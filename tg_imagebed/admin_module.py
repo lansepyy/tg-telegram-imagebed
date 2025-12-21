@@ -433,6 +433,27 @@ def register_admin_routes(app, DATABASE_PATH, get_all_files_count, get_total_siz
                 else:
                     return f"{size_bytes / 1024 / 1024 / 1024:.1f} GB"
 
+            # 获取本地缓存统计
+            local_cache_data = {'enabled': False}
+            try:
+                from .database import get_system_setting
+                from .services.cache_service import get_cache_service
+                cache_enabled = get_system_setting('local_cache_enabled') == '1'
+                if cache_enabled:
+                    cache_service = get_cache_service()
+                    cache_count, cache_size = cache_service.get_cache_size()
+                    local_cache_data = {
+                        'enabled': True,
+                        'file_count': cache_count,
+                        'total_size': format_size(cache_size),
+                        'total_size_bytes': cache_size
+                    }
+                else:
+                    local_cache_data = {'enabled': False}
+            except Exception as e:
+                logger.error(f"获取本地缓存统计失败: {e}")
+                local_cache_data = {'enabled': False, 'error': str(e)}
+
             response_data = {
                 'success': True,
                 'data': {
@@ -440,7 +461,8 @@ def register_admin_routes(app, DATABASE_PATH, get_all_files_count, get_total_siz
                         'totalImages': total_files,
                         'totalSize': format_size(total_size),
                         'todayUploads': today_uploads,
-                        'cdnCached': cdn_cached
+                        'cdnCached': cdn_cached,
+                        'localCache': local_cache_data
                     },
                     'config': _get_config_status_from_db()
                 }

@@ -1,6 +1,17 @@
 export const VERSION_INFO = {
-  version: "2.0.6",
+  version: "2.0.7",
   updateNotes: [
+    {
+      version: "2.0.7",
+      date: "2025-12-21",
+      type: "patch",
+      changes: [
+        "Telegram 机器人支持智能文件命名：有 Caption 时使用说明文字作为文件名",
+        "无 Caption 时自动使用日期时间格式命名（IMG_YYYYMMDD_HHMMSS.jpg）",
+        "文件名安全处理：自动过滤非法字符，保留字母数字和常用符号",
+        "Caption 无扩展名时自动添加 .jpg 后缀"
+      ]
+    },
     {
       version: "2.0.6",
       date: "2025-12-21",
@@ -10,7 +21,8 @@ export const VERSION_INFO = {
         "本地缓存默认状态改为关闭，需手动开启才会缓存新图片",
         "新增 X-Cache-Enabled 响应头，明确标识缓存开关状态",
         "图片管理列表 API 返回 local_cached 字段，支持详情模态框显示缓存状态",
-        "完善日志输出：区分缓存读取/写入/跳过等操作"
+        "完善日志输出：区分缓存读取/写入/跳过等操作",
+        "修复本地缓存配置保存问题：settings.py API 正确处理字段"
       ]
     },
     {
