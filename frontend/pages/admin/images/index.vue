@@ -497,23 +497,41 @@ const handleRefreshWithCache = async () => {
   try {
     checkingCache.value = true
     
-    // 调用检查本地缓存接口
+    // 获取当前页面显示的所有图片的 encrypted_id
+    const encryptedIds = images.value.map(img => img.encrypted_id).filter(Boolean)
+    
+    if (encryptedIds.length === 0) {
+      notification.warning('提示', '当前页面没有图片')
+      return
+    }
+    
+    // 调用检查本地缓存接口，传递当前页面的图片ID
     const response = await fetch('/api/admin/check_local_cache', {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        encrypted_ids: encryptedIds
+      })
     })
     
-    if (response.ok) {
-      const result = await response.json()
-      if (result.success) {
-        const { checked, cached, triggered } = result.data
-        notification.success(
-          '缓存检查完成',
-          `检查${checked}张图片，已缓存${cached}张，新触发${triggered}张`
-        )
+    const result = await response.json()
+    
+    if (!response.ok) {
+      notification.error('错误', result.error || '检查本地缓存失败')
+      return
+    }
+    
+    if (result.success) {
+      const { checked, cached, triggered, failed } = result.data
+      const message = result.message || `检查${checked}张图片，已缓存${cached}张，新触发${triggered}张`
+      
+      if (failed && failed > 0) {
+        notification.warning('缓存检查完成', message)
+      } else {
+        notification.success('缓存检查完成', message)
       }
     }
   } catch (error) {

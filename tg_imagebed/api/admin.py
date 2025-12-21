@@ -1528,17 +1528,45 @@ def check_local_cache():
         from ..services.cache_service import get_cache_service
         from ..database import get_connection
         
+        # 检查缓存是否启用
+        cache_enabled = get_system_setting('local_cache_enabled') == '1'
+        if not cache_enabled:
+            response = jsonify({
+                'success': False,
+                'error': '本地缓存未启用，请先在设置中开启'
+            })
+            response = add_cache_headers(response, cache_type='no-cache')
+            return response, 400
+        
         cache_service = get_cache_service()
         
-        # 获取所有文件
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT encrypted_id, original_filename FROM file_storage')
-            all_files = [dict(row) for row in cursor.fetchall()]
+        # 获取请求中的图片ID列表（如果提供）
+        data = request.get_json(silent=True) or {}
+        encrypted_ids = data.get('encrypted_ids', [])
+        
+        # 如果没有提供ID列表，则查询所有文件
+        if not encrypted_ids:
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT encrypted_id, original_filename FROM file_storage ORDER BY upload_time DESC')
+                all_files = [dict(row) for row in cursor.fetchall()]
+        else:
+            # 只查询指定的文件
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                placeholders = ','.join(['?' for _ in encrypted_ids])
+                cursor.execute(
+                    f'SELECT encrypted_id, original_filename FROM file_storage WHERE encrypted_id IN ({placeholders})',
+                    encrypted_ids
+                )
+                all_files = [dict(row) for row in cursor.fetchall()]
         
         checked_count = 0
         cached_count = 0
         triggered_count = 0
+        failed_count = 0
+        
+        logger.info(f"开始检查本地缓存，目标文件数: {len(all_files)}")
         
         for file_info in all_files:
             encrypted_id = file_info.get('encrypted_id')
@@ -1561,23 +1589,39 @@ def check_local_cache():
                     from ..storage.router import get_storage_router
                     storage_router = get_storage_router()
                     
+                    logger.info(f"正在触发缓存: {encrypted_id} ({filename})")
+                    
                     # 通过storage获取文件，这会自动触发缓存
                     file_data, mimetype = storage_router.retrieve_file(encrypted_id)
                     
                     if file_data:
                         triggered_count += 1
-                        logger.info(f"触发本地缓存: {encrypted_id}")
+                        logger.info(f"✓ 缓存已生成: {encrypted_id} (size: {len(file_data)} bytes)")
+                    else:
+                        failed_count += 1
+                        logger.warning(f"✗ 文件数据为空: {encrypted_id}")
                 except Exception as e:
-                    logger.error(f"触发缓存失败 {encrypted_id}: {str(e)}")
+                    failed_count += 1
+                    logger.error(f"✗ 触发缓存失败 {encrypted_id}: {str(e)}")
         
-        logger.info(f"本地缓存检查完成: 检查={checked_count}, 已缓存={cached_count}, 新触发={triggered_count}")
+        logger.info(f"本地缓存检查完成: 检查={checked_count}, 已缓存={cached_count}, 新触发={triggered_count}, 失败={failed_count}")
+        
+        message = f"检查了{checked_count}张图片"
+        if triggered_count > 0:
+            message += f"，成功生成{triggered_count}个缓存"
+        if failed_count > 0:
+            message += f"，{failed_count}个失败"
+        if cached_count == checked_count:
+            message = f"所有{checked_count}张图片都已缓存"
         
         response = jsonify({
             'success': True,
+            'message': message,
             'data': {
                 'checked': checked_count,
                 'cached': cached_count,
-                'triggered': triggered_count
+                'triggered': triggered_count,
+                'failed': failed_count
             }
         })
         response = add_cache_headers(response, cache_type='no-cache')
@@ -1585,6 +1629,6 @@ def check_local_cache():
         
     except Exception as e:
         logger.error(f'检查本地缓存失败: {str(e)}')
-        response = jsonify({'success': False, 'error': '检查本地缓存失败'})
+        response = jsonify({'success': False, 'error': f'检查失败: {str(e)}'})
         response = add_cache_headers(response, cache_type='no-cache')
         return response, 500
