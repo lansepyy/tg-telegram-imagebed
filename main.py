@@ -443,6 +443,7 @@ def run_telegram_bot():
 
         chat_type = (getattr(chat, 'type', '') or '').lower()
         is_group = chat_type in ('group', 'supergroup', 'channel')
+        is_channel = chat_type == 'channel'
 
         # 群组/频道：执行权限检查
         reply_enabled = True
@@ -470,8 +471,9 @@ def run_telegram_bot():
             username = getattr(chat, 'title', '') or 'channel'
 
         # 检测批量上传（media_group_id）
+        # 频道不使用批量模式，每张图片都单独回复评论
         media_group_id = getattr(message, 'media_group_id', None)
-        use_batch = bool(is_group and reply_enabled and media_group_id)
+        use_batch = bool(is_group and not is_channel and reply_enabled and media_group_id)
 
         # 发送处理中消息（批量模式下延迟到首张图片时发送）
         status_msg = None
