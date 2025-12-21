@@ -1,6 +1,18 @@
 export const VERSION_INFO = {
-  version: "2.0.3",
+  version: "2.0.4",
   updateNotes: [
+    {
+      version: "2.0.4",
+      date: "2025-12-21",
+      type: "minor",
+      changes: [
+        "新增本地缓存功能：大幅减少对 Telegram API 的请求，提升访问速度",
+        "支持自定义缓存路径和开关配置",
+        "管理 API 新增缓存统计和清理功能",
+        "图片列表显示本地缓存状态",
+        "修复频道多图评论问题：频道改为每张图单独评论，群组保持批量模式"
+      ]
+    },
     {
       version: "2.0.3",
       date: "2025-12-21",
