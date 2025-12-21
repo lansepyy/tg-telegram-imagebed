@@ -88,6 +88,9 @@ def _format_settings_for_response(settings: dict) -> dict:
         'group_upload_delete_delay': _safe_int(settings.get('group_upload_delete_delay'), 0, 0),
         # TG 同步删除
         'tg_sync_delete_enabled': settings.get('tg_sync_delete_enabled', '1') == '1',
+        # 本地缓存配置
+        'local_cache_enabled': settings.get('local_cache_enabled', '0') == '1',
+        'local_cache_path': settings.get('local_cache_path', ''),
     }
 
 
@@ -293,6 +296,13 @@ def admin_system_settings():
             # TG 同步删除
             if 'tg_sync_delete_enabled' in data:
                 settings_to_update['tg_sync_delete_enabled'] = '1' if data['tg_sync_delete_enabled'] else '0'
+
+            # 本地缓存配置
+            if 'local_cache_enabled' in data:
+                settings_to_update['local_cache_enabled'] = '1' if data['local_cache_enabled'] else '0'
+
+            if 'local_cache_path' in data:
+                settings_to_update['local_cache_path'] = str(data['local_cache_path']).strip()
 
             # 有错误则返回
             if errors:
