@@ -1587,19 +1587,41 @@ def check_local_cache():
                 # 如果没有缓存，触发一次获取来生成缓存
                 try:
                     from ..storage.router import get_storage_router
+                    from ..database import get_file_by_encrypted_id
+                    
+                    # 获取完整的文件信息
+                    file_info = get_file_by_encrypted_id(encrypted_id)
+                    if not file_info:
+                        failed_count += 1
+                        logger.warning(f"✗ 文件信息不存在: {encrypted_id}")
+                        continue
+                    
                     storage_router = get_storage_router()
+                    backend = storage_router.get_backend_for_record(file_info)
                     
                     logger.info(f"正在触发缓存: {encrypted_id} ({filename})")
                     
-                    # 通过storage获取文件，这会自动触发缓存
-                    file_data, mimetype = storage_router.retrieve_file(encrypted_id)
+                    # 通过backend下载文件，这会自动触发缓存
+                    dl = backend.download(file_info=file_info, range_header=None)
                     
-                    if file_data:
-                        triggered_count += 1
-                        logger.info(f"✓ 缓存已生成: {encrypted_id} (size: {len(file_data)} bytes)")
+                    if dl.status_code == 200:
+                        # 将响应体转为字节
+                        if hasattr(dl.body, '__iter__') and not isinstance(dl.body, (bytes, bytearray)):
+                            file_data = b''.join(dl.body)
+                        else:
+                            file_data = dl.body
+                        
+                        if file_data:
+                            # 写入缓存
+                            cache_service.put(encrypted_id, file_data, file_ext)
+                            triggered_count += 1
+                            logger.info(f"✓ 缓存已生成: {encrypted_id} (size: {len(file_data)} bytes)")
+                        else:
+                            failed_count += 1
+                            logger.warning(f"✗ 文件数据为空: {encrypted_id}")
                     else:
                         failed_count += 1
-                        logger.warning(f"✗ 文件数据为空: {encrypted_id}")
+                        logger.warning(f"✗ 下载失败: {encrypted_id}, status={dl.status_code}")
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"✗ 触发缓存失败 {encrypted_id}: {str(e)}")
