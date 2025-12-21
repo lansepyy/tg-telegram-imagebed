@@ -1587,10 +1587,10 @@ def check_local_cache():
                 # 如果没有缓存，触发一次获取来生成缓存
                 try:
                     from ..storage.router import get_storage_router
-                    from ..database import get_file_by_encrypted_id
+                    from ..database import get_file_info
                     
                     # 获取完整的文件信息
-                    file_info = get_file_by_encrypted_id(encrypted_id)
+                    file_info = get_file_info(encrypted_id)
                     if not file_info:
                         failed_count += 1
                         logger.warning(f"✗ 文件信息不存在: {encrypted_id}")
