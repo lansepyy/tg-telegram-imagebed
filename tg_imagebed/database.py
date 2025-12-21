@@ -34,10 +34,17 @@ from .config import (
 @contextmanager
 def get_connection():
     """获取数据库连接的上下文管理器"""
-    conn = sqlite3.connect(DATABASE_PATH)
+    conn = sqlite3.connect(DATABASE_PATH, timeout=30.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    
+    # 性能优化配置
     conn.execute('PRAGMA foreign_keys = ON')
-    conn.execute('PRAGMA busy_timeout = 5000')
+    conn.execute('PRAGMA journal_mode = WAL')  # 启用 WAL 模式，提高并发性能
+    conn.execute('PRAGMA busy_timeout = 30000')  # 增加超时到 30 秒
+    conn.execute('PRAGMA synchronous = NORMAL')  # 平衡性能和安全性
+    conn.execute('PRAGMA cache_size = -64000')  # 64MB 缓存
+    conn.execute('PRAGMA temp_store = MEMORY')  # 临时表存储在内存
+    
     try:
         yield conn
         conn.commit()
@@ -361,8 +368,9 @@ def init_database() -> None:
 
 
 # ===================== 文件存储操作 =====================
+@db_retry(max_attempts=3, base_delay=0.1, max_delay=2.0)
 def get_file_info(encrypted_id: str) -> Optional[Dict[str, Any]]:
-    """获取文件信息"""
+    """获取文件信息（带重试）"""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM file_storage WHERE encrypted_id = ?', (encrypted_id,))
@@ -460,8 +468,9 @@ def update_cdn_cache_status(encrypted_id: str, cached: bool) -> None:
         logger.info(f"更新CDN缓存状态: {encrypted_id} -> {'已缓存' if cached else '未缓存'}")
 
 
+@db_retry(max_attempts=3, base_delay=0.1, max_delay=2.0)
 def update_access_count(encrypted_id: str, access_type: str = 'direct_access') -> None:
-    """更新访问计数
+    """更新访问计数（带重试）
 
     Args:
         encrypted_id: 加密的文件ID
@@ -1218,8 +1227,9 @@ def migrate_env_settings() -> int:
     return migrated
 
 
+@db_retry(max_attempts=3, base_delay=0.05, max_delay=1.0)
 def get_system_setting(key: str) -> Optional[str]:
-    """获取单个系统设置"""
+    """获取单个系统设置（带重试）"""
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -1228,6 +1238,9 @@ def get_system_setting(key: str) -> Optional[str]:
             if row:
                 return row[0]
             return DEFAULT_SYSTEM_SETTINGS.get(key)
+    except sqlite3.OperationalError:
+        # 重试装饰器会处理锁定错误，这里只处理其他错误
+        raise
     except Exception as e:
         logger.error(f"获取系统设置失败 {key}: {e}")
         return DEFAULT_SYSTEM_SETTINGS.get(key)
