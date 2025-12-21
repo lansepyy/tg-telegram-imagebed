@@ -74,8 +74,8 @@
             color="gray"
             variant="ghost"
             size="sm"
-            :loading="loading"
-            @click="loadImages"
+            :loading="loading || checkingCache"
+            @click="handleRefreshWithCache"
           />
         </div>
       </div>
@@ -335,6 +335,7 @@ const { getImages, deleteImages, clearCache } = useImageApi()
 // 状态
 const loading = ref(false)
 const deleting = ref(false)
+const checkingCache = ref(false)
 const images = ref<any[]>([])
 const selectedImages = ref<string[]>([])
 const selectAll = ref(false)
@@ -488,6 +489,40 @@ const handleImageError = (event: Event, image: any) => {
   } else {
     // 设置占位图
     imgElement.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23ddd" width="400" height="400"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24"%3E加载失败%3C/text%3E%3C/svg%3E'
+  }
+}
+
+// 刷新并检查本地缓存
+const handleRefreshWithCache = async () => {
+  try {
+    checkingCache.value = true
+    
+    // 调用检查本地缓存接口
+    const response = await fetch('/api/admin/check_local_cache', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      const result = await response.json()
+      if (result.success) {
+        const { checked, cached, triggered } = result.data
+        notification.success(
+          '缓存检查完成',
+          `检查${checked}张图片，已缓存${cached}张，新触发${triggered}张`
+        )
+      }
+    }
+  } catch (error) {
+    console.error('检查缓存失败:', error)
+    notification.error('错误', '检查本地缓存失败')
+  } finally {
+    checkingCache.value = false
+    // 刷新图片列表
+    await loadImages()
   }
 }
 

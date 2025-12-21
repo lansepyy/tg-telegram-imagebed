@@ -1513,3 +1513,75 @@ def get_logs():
         response = jsonify({'success': False, 'error': '获取日志失败'})
         response = add_cache_headers(response, cache_type='no-cache')
         return response, 500
+
+
+@admin_bp.route('/api/admin/check_local_cache', methods=['POST', 'OPTIONS'])
+@admin_module.login_required
+def check_local_cache():
+    """检查并触发本地缓存（管理员）"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'success': True})
+        response = add_cache_headers(response, cache_type='no-cache')
+        return response
+
+    try:
+        from ..services.cache_service import get_cache_service
+        from ..database import get_all_files
+        
+        cache_service = get_cache_service()
+        
+        # 获取所有文件
+        all_files = get_all_files()
+        
+        checked_count = 0
+        cached_count = 0
+        triggered_count = 0
+        
+        for file_info in all_files:
+            encrypted_id = file_info.get('encrypted_id')
+            filename = file_info.get('filename', '')
+            file_ext = os.path.splitext(filename)[1] if filename else ''
+            
+            if not encrypted_id:
+                continue
+                
+            checked_count += 1
+            
+            # 检查本地缓存是否存在
+            cached_data = cache_service.get(encrypted_id, file_ext)
+            
+            if cached_data:
+                cached_count += 1
+            else:
+                # 如果没有缓存，触发一次获取来生成缓存
+                try:
+                    from ..storage.router import get_storage_router
+                    storage_router = get_storage_router()
+                    
+                    # 通过storage获取文件，这会自动触发缓存
+                    file_data, mimetype = storage_router.retrieve_file(encrypted_id)
+                    
+                    if file_data:
+                        triggered_count += 1
+                        logger.info(f"触发本地缓存: {encrypted_id}")
+                except Exception as e:
+                    logger.error(f"触发缓存失败 {encrypted_id}: {str(e)}")
+        
+        logger.info(f"本地缓存检查完成: 检查={checked_count}, 已缓存={cached_count}, 新触发={triggered_count}")
+        
+        response = jsonify({
+            'success': True,
+            'data': {
+                'checked': checked_count,
+                'cached': cached_count,
+                'triggered': triggered_count
+            }
+        })
+        response = add_cache_headers(response, cache_type='no-cache')
+        return response
+        
+    except Exception as e:
+        logger.error(f'检查本地缓存失败: {str(e)}')
+        response = jsonify({'success': False, 'error': '检查本地缓存失败'})
+        response = add_cache_headers(response, cache_type='no-cache')
+        return response, 500
