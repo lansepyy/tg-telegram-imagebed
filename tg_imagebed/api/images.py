@@ -140,46 +140,47 @@ def serve_image(encrypted_id):
             file_ext = Path(path_for_ext).suffix or '.jpg'
             cache_service = get_cache_service()
             cached_data = cache_service.get(encrypted_id, file_ext)
-        
-        if cached_data:
-            logger.info(f"从本地缓存返回图片: {encrypted_id} (访问类型: {access_type})")
             
-            # 生成 ETag
-            etag = file_info.get('etag') or f'W/"{encrypted_id}-{file_info.get("file_size", 0)}"'
-            
-            filename = f"image_{encrypted_id[:12]}{file_ext}"
-            
-            resp = Response(
-                cached_data,
-                status=200,
-                mimetype=file_info.get('mime_type') or 'image/jpeg',
-            )
-            
-            resp.headers['Content-Disposition'] = f'inline; filename="{filename}"'
-            resp.headers['X-Content-Type-Options'] = 'nosniff'
-            resp.headers['Accept-Ranges'] = 'bytes'
-            resp.headers['ETag'] = etag
-            resp.headers['X-Access-Type'] = access_type
-            resp.headers['X-Storage-Backend'] = 'local-cache'
-            resp.headers['X-Cache-Hit'] = 'true'
-            resp.headers['Access-Control-Allow-Origin'] = '*'
-            resp.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
-            resp.headers['Access-Control-Allow-Headers'] = 'Range, Cache-Control'
-            resp.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag, X-Storage-Backend, X-Cache-Hit'
-            
-            # 根据模式设置缓存头
-            if cdn_mode:
-                if is_new_file:
-                    resp.headers['Cache-Control'] = 'public, max-age=300, s-maxage=300'
+            if cached_data:
+                logger.info(f"从本地缓存返回图片: {encrypted_id} (访问类型: {access_type})")
+                
+                # 生成 ETag
+                etag = file_info.get('etag') or f'W/"{encrypted_id}-{file_info.get("file_size", 0)}"'
+                
+                filename = f"image_{encrypted_id[:12]}{file_ext}"
+                
+                resp = Response(
+                    cached_data,
+                    status=200,
+                    mimetype=file_info.get('mime_type') or 'image/jpeg',
+                )
+                
+                resp.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+                resp.headers['X-Content-Type-Options'] = 'nosniff'
+                resp.headers['Accept-Ranges'] = 'bytes'
+                resp.headers['ETag'] = etag
+                resp.headers['X-Access-Type'] = access_type
+                resp.headers['X-Storage-Backend'] = 'local-cache'
+                resp.headers['X-Cache-Hit'] = 'true'
+                resp.headers['Access-Control-Allow-Origin'] = '*'
+                resp.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+                resp.headers['Access-Control-Allow-Headers'] = 'Range, Cache-Control'
+                resp.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag, X-Storage-Backend, X-Cache-Hit'
+                
+                # 根据模式设置缓存头
+                if cdn_mode:
+                    if is_new_file:
+                        resp.headers['Cache-Control'] = 'public, max-age=300, s-maxage=300'
+                    else:
+                        resp.headers['Cache-Control'] = 'public, max-age=31536000, s-maxage=2592000, immutable'
+                    resp.headers['Vary'] = 'Accept-Encoding'
                 else:
-                    resp.headers['Cache-Control'] = 'public, max-age=31536000, s-maxage=2592000, immutable'
-                resp.headers['Vary'] = 'Accept-Encoding'
-            else:
-                resp.headers['Cache-Control'] = 'public, max-age=3600'
-            
-            return resp
-    except Exception as e:
-        logger.warning(f"从缓存读取失败: {encrypted_id}, error={e}")
+                    resp.headers['Cache-Control'] = 'public, max-age=3600'
+                
+                return resp
+        except Exception as e:
+            logger.warning(f"从缓存读取失败: {encrypted_id}, error={e}")
+
     # 生成 ETag
     etag = file_info.get('etag') or f'W/"{encrypted_id}-{file_info.get("file_size", 0)}"'
 
