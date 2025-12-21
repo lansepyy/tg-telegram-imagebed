@@ -1,6 +1,18 @@
 export const VERSION_INFO = {
-  version: "2.0.4",
+  version: "2.0.5",
   updateNotes: [
+    {
+      version: "2.0.5",
+      date: "2025-12-21",
+      type: "patch",
+      changes: [
+        "优化数据库并发性能：启用 WAL 模式，增加超时时间到 30 秒",
+        "为关键数据库操作添加重试机制，解决高并发时 database locked 错误",
+        "图片管理页面完整显示本地缓存状态（卡片徽章+详情）",
+        "Settings 页面添加本地缓存配置区域（开关+路径设置）",
+        "Dashboard 页面添加本地缓存统计卡片"
+      ]
+    },
     {
       version: "2.0.4",
       date: "2025-12-21",
