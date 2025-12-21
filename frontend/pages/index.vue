@@ -42,6 +42,27 @@
       </template>
     </UAlert>
 
+    <!-- 无Token提示 - 引导生成 -->
+    <UAlert
+      v-if="guestStore.vaultItems.length === 0 && !guestStore.hasToken"
+      color="blue"
+      variant="subtle"
+      icon="heroicons:information-circle"
+      title="还没有Token？"
+      description="生成专属Token，管理您的图片相册，查看上传历史。"
+    >
+      <template #actions>
+        <UButton
+          color="blue"
+          variant="solid"
+          size="xs"
+          @click="showTokenGenerator = true"
+        >
+          立即生成Token
+        </UButton>
+      </template>
+    </UAlert>
+
     <!-- 上传区域 -->
     <div class="flex justify-center items-center min-h-[60vh]">
       <UCard class="upload-card shadow-2xl w-full max-w-2xl">
