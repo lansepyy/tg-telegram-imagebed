@@ -796,6 +796,8 @@ const handleFiles = async (files: File[]) => {
       }
     } else if (guestStore.hasToken) {
       // 使用Token上传（支持实时进度）
+      console.log('[上传] 使用Token上传, hasToken:', guestStore.hasToken, 'token:', guestStore.token ? '已设置' : '未设置', 'token长度:', guestStore.token?.length || 0)
+      
       for (let i = 0; i < validFiles.length; i++) {
         const file = validFiles[i];
         const formData = new FormData();
@@ -859,6 +861,7 @@ const handleFiles = async (files: File[]) => {
       await guestStore.verifyToken();
     } else {
       // 普通上传（无Token）
+      console.log('[上传] 使用普通上传（无Token）, hasToken:', guestStore.hasToken, 'vaultItems:', guestStore.vaultItems.length)
       results = await uploadImages(validFiles, (progress) => {
         uploadProgress.value = progress;
       });
