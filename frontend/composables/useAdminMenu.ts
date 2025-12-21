@@ -76,6 +76,14 @@ export const adminMenu: AdminMenuItem[] = [
     permissions: ['admin'],
     activeMatch: { type: 'prefix', prefixes: ['/admin/announcements'] },
   },
+  {
+    key: 'logs',
+    label: '系统日志',
+    to: '/admin/logs',
+    icon: 'heroicons:document-text',
+    permissions: ['admin'],
+    activeMatch: { type: 'prefix', prefixes: ['/admin/logs'] },
+  },
 ]
 
 /**

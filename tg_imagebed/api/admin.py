@@ -8,7 +8,7 @@ import json
 from flask import request, jsonify, Response, session
 
 from . import admin_bp
-from ..config import STATIC_VERSION, DATABASE_PATH, logger
+from ..config import STATIC_VERSION, DATABASE_PATH, logger, LOG_FILE
 from ..utils import add_cache_headers, format_size, get_domain
 from ..database import (
     get_announcement, update_announcement,
@@ -1439,3 +1439,77 @@ def admin_gallery_cover(gallery_id: int):
     if gallery.get('cover_image'):
         gallery['cover_url'] = f"{base_url}/image/{gallery['cover_image']}"
     return _admin_json({'success': True, 'data': {'gallery': gallery}})
+
+
+@admin_bp.route('/api/admin/logs', methods=['GET', 'DELETE', 'OPTIONS'])
+@admin_module.login_required
+def get_logs():
+    """获取或清空系统日志（管理员）"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'success': True})
+        response = add_cache_headers(response, cache=False)
+        return response
+
+    # DELETE - 清空日志
+    if request.method == 'DELETE':
+        try:
+            # 使用配置文件中的日志文件路径
+            if os.path.exists(LOG_FILE):
+                # 清空日志文件
+                with open(LOG_FILE, 'w', encoding='utf-8') as f:
+                    f.write('')
+                logger.info('系统日志已被管理员清空')
+            response = jsonify({'success': True, 'message': '日志已清空'})
+            response = add_cache_headers(response, cache=False)
+            return response
+        except Exception as e:
+            logger.error(f'清空日志失败: {str(e)}')
+            response = jsonify({'success': False, 'error': '清空日志失败'})
+            response = add_cache_headers(response, cache=False)
+            return response, 500
+
+    # GET - 获取日志
+    try:
+        # 获取参数
+        lines = request.args.get('lines', '100')
+        level = request.args.get('level', '').upper()
+        
+        try:
+            lines = int(lines)
+        except:
+            lines = 100
+        
+        logs = []
+        if os.path.exists(LOG_FILE):
+            try:
+                # 读取日志文件最后N行
+                with open(LOG_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+                    all_lines = f.readlines()
+                    # 获取最后N行
+                    recent_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+                    
+                    # 如果指定了日志级别，进行过滤
+                    if level:
+                        filtered_lines = [line for line in recent_lines if level in line]
+                        logs = filtered_lines
+                    else:
+                        logs = recent_lines
+                        
+            except Exception as e:
+                logger.error(f'读取日志文件失败: {str(e)}')
+                logs = [f'ERROR: 读取日志文件失败: {str(e)}']
+        else:
+            logs = [f'INFO: 日志文件不存在，路径: {LOG_FILE}']
+
+        response = jsonify({
+            'success': True,
+            'logs': [log.strip() for log in logs if log.strip()]
+        })
+        response = add_cache_headers(response, cache=False)
+        return response
+
+    except Exception as e:
+        logger.error(f'获取日志失败: {str(e)}')
+        response = jsonify({'success': False, 'error': '获取日志失败'})
+        response = add_cache_headers(response, cache=False)
+        return response, 500
