@@ -1,5 +1,47 @@
 <template>
   <div class="max-w-5xl mx-auto space-y-8">
+    <!-- Token状态提示 -->
+    <UAlert
+      v-if="guestStore.vaultItems.length > 0 && !guestStore.hasToken"
+      color="amber"
+      variant="subtle"
+      icon="heroicons:exclamation-triangle"
+      title="Token未激活"
+      description="检测到您有已保存的Token，但当前未激活。上传的图片将无法添加到相册。"
+    >
+      <template #actions>
+        <UButton
+          color="amber"
+          variant="solid"
+          size="xs"
+          @click="$router.push('/album')"
+        >
+          前往相册激活Token
+        </UButton>
+      </template>
+    </UAlert>
+
+    <!-- Token已激活提示 -->
+    <UAlert
+      v-if="guestStore.hasToken"
+      color="emerald"
+      variant="subtle"
+      icon="heroicons:check-circle"
+      :title="`已使用Token：${guestStore.activeAlbumLabel || '未命名相册'}`"
+      :description="`已上传 ${guestStore.uploadCount} 张图片`"
+    >
+      <template #actions>
+        <UButton
+          color="emerald"
+          variant="soft"
+          size="xs"
+          @click="$router.push('/album')"
+        >
+          查看相册
+        </UButton>
+      </template>
+    </UAlert>
+
     <!-- 上传区域 -->
     <div class="flex justify-center items-center min-h-[60vh]">
       <UCard class="upload-card shadow-2xl w-full max-w-2xl">
