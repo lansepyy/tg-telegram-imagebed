@@ -141,19 +141,32 @@ if db_dir and not os.path.exists(db_dir):
 # ===================== 日志配置 =====================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE = os.getenv("LOG_FILE", "telegram_imagebed.log")
+TIMEZONE = os.getenv("TZ", "Asia/Shanghai")  # 默认使用中国时区
 
 # 确保日志文件目录存在
 log_dir = os.path.dirname(LOG_FILE)
 if log_dir and not os.path.exists(log_dir):
     os.makedirs(log_dir, exist_ok=True)
 
-# 自定义日志格式器，使用本地时区
+# 自定义日志格式器，使用指定时区
 class LocalTimeFormatter(logging.Formatter):
-    """使用本地时区的日志格式化器"""
+    """使用指定时区的日志格式化器"""
     def formatTime(self, record, datefmt=None):
-        # 使用本地时间
-        from datetime import datetime
-        dt = datetime.fromtimestamp(record.created)
+        from datetime import datetime, timezone, timedelta
+        try:
+            # 尝试使用 pytz 库（更准确）
+            import pytz
+            tz = pytz.timezone(TIMEZONE)
+            dt = datetime.fromtimestamp(record.created, tz=tz)
+        except ImportError:
+            # 如果没有 pytz，使用简单的偏移量（仅支持固定偏移）
+            # 假设 Asia/Shanghai = UTC+8
+            offset_hours = 8 if TIMEZONE == "Asia/Shanghai" else 0
+            dt = datetime.fromtimestamp(record.created, tz=timezone(timedelta(hours=offset_hours)))
+        except Exception:
+            # 兜底：使用本地时间
+            dt = datetime.fromtimestamp(record.created)
+        
         if datefmt:
             return dt.strftime(datefmt)
         return dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -177,6 +190,8 @@ logging.basicConfig(
     handlers=[file_handler, console_handler]
 )
 logger = logging.getLogger(__name__)
+
+logger.info(f"日志时区设置: {TIMEZONE}")
 
 # ===================== 单实例锁文件 =====================
 if sys.platform == 'win32':
