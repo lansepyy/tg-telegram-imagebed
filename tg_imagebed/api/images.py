@@ -130,56 +130,56 @@ def serve_image(encrypted_id):
     # 更新访问计数
     update_access_count(encrypted_id, access_type)
 
-    # 检查本地缓存是否启用
-    cache_enabled = str(get_system_setting('local_cache_enabled') or '1') == '1'
+    # 检查本地缓存开关状态（默认关闭）
+    cache_enabled = str(get_system_setting('local_cache_enabled') or '0') == '1'
 
-    # 尝试从本地缓存获取（如果启用）
-    if cache_enabled:
-        try:
-            path_for_ext = file_info.get('file_path') or file_info.get('original_filename') or ''
-            file_ext = Path(path_for_ext).suffix or '.jpg'
-            cache_service = get_cache_service()
-            cached_data = cache_service.get(encrypted_id, file_ext)
+    # 始终尝试从本地缓存读取（即使关闭开关，也利用已有缓存）
+    try:
+        path_for_ext = file_info.get('file_path') or file_info.get('original_filename') or ''
+        file_ext = Path(path_for_ext).suffix or '.jpg'
+        cache_service = get_cache_service()
+        cached_data = cache_service.get(encrypted_id, file_ext)
+        
+        if cached_data:
+            logger.info(f"从本地缓存返回图片: {encrypted_id} (缓存开关: {'开启' if cache_enabled else '关闭'})")
             
-            if cached_data:
-                logger.info(f"从本地缓存返回图片: {encrypted_id} (访问类型: {access_type})")
-                
-                # 生成 ETag
-                etag = file_info.get('etag') or f'W/"{encrypted_id}-{file_info.get("file_size", 0)}"'
-                
-                filename = f"image_{encrypted_id[:12]}{file_ext}"
-                
-                resp = Response(
-                    cached_data,
-                    status=200,
-                    mimetype=file_info.get('mime_type') or 'image/jpeg',
-                )
-                
-                resp.headers['Content-Disposition'] = f'inline; filename="{filename}"'
-                resp.headers['X-Content-Type-Options'] = 'nosniff'
-                resp.headers['Accept-Ranges'] = 'bytes'
-                resp.headers['ETag'] = etag
-                resp.headers['X-Access-Type'] = access_type
-                resp.headers['X-Storage-Backend'] = 'local-cache'
-                resp.headers['X-Cache-Hit'] = 'true'
-                resp.headers['Access-Control-Allow-Origin'] = '*'
-                resp.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
-                resp.headers['Access-Control-Allow-Headers'] = 'Range, Cache-Control'
-                resp.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag, X-Storage-Backend, X-Cache-Hit'
-                
-                # 根据模式设置缓存头
-                if cdn_mode:
-                    if is_new_file:
-                        resp.headers['Cache-Control'] = 'public, max-age=300, s-maxage=300'
-                    else:
-                        resp.headers['Cache-Control'] = 'public, max-age=31536000, s-maxage=2592000, immutable'
-                    resp.headers['Vary'] = 'Accept-Encoding'
+            # 生成 ETag
+            etag = file_info.get('etag') or f'W/"{encrypted_id}-{file_info.get("file_size", 0)}"'
+            
+            filename = f"image_{encrypted_id[:12]}{file_ext}"
+            
+            resp = Response(
+                cached_data,
+                status=200,
+                mimetype=file_info.get('mime_type') or 'image/jpeg',
+            )
+            
+            resp.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+            resp.headers['X-Content-Type-Options'] = 'nosniff'
+            resp.headers['Accept-Ranges'] = 'bytes'
+            resp.headers['ETag'] = etag
+            resp.headers['X-Access-Type'] = access_type
+            resp.headers['X-Storage-Backend'] = 'local-cache'
+            resp.headers['X-Cache-Hit'] = 'true'
+            resp.headers['X-Cache-Enabled'] = 'true' if cache_enabled else 'false'
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            resp.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+            resp.headers['Access-Control-Allow-Headers'] = 'Range, Cache-Control'
+            resp.headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag, X-Storage-Backend, X-Cache-Hit, X-Cache-Enabled'
+            
+            # 根据模式设置缓存头
+            if cdn_mode:
+                if is_new_file:
+                    resp.headers['Cache-Control'] = 'public, max-age=300, s-maxage=300'
                 else:
-                    resp.headers['Cache-Control'] = 'public, max-age=3600'
-                
-                return resp
-        except Exception as e:
-            logger.warning(f"从缓存读取失败: {encrypted_id}, error={e}")
+                    resp.headers['Cache-Control'] = 'public, max-age=31536000, s-maxage=2592000, immutable'
+                resp.headers['Vary'] = 'Accept-Encoding'
+            else:
+                resp.headers['Cache-Control'] = 'public, max-age=3600'
+            
+            return resp
+    except Exception as e:
+        logger.warning(f"从缓存读取失败: {encrypted_id}, error={e}")
 
     # 生成 ETag
     etag = file_info.get('etag') or f'W/"{encrypted_id}-{file_info.get("file_size", 0)}"'
@@ -238,8 +238,12 @@ def serve_image(encrypted_id):
                 if not cache_service.exists(encrypted_id, file_ext):
                     cache_service.put(encrypted_id, body_bytes, file_ext)
                     logger.info(f"图片已缓存到本地: {encrypted_id}")
+                else:
+                    logger.debug(f"本地缓存已存在，跳过写入: {encrypted_id}")
             except Exception as e:
                 logger.warning(f"写入缓存失败: {encrypted_id}, error={e}")
+        elif dl.status_code == 200 and not cache_enabled:
+            logger.debug(f"本地缓存已关闭，跳过写入: {encrypted_id}")
 
         resp_headers = dict(dl.headers or {})
         resp_headers.setdefault('Content-Disposition', f'inline; filename="{filename}"')
@@ -249,10 +253,11 @@ def serve_image(encrypted_id):
         resp_headers['X-Access-Type'] = access_type
         resp_headers['X-Storage-Backend'] = backend.name
         resp_headers['X-Cache-Hit'] = 'false'
+        resp_headers['X-Cache-Enabled'] = 'true' if cache_enabled else 'false'
         resp_headers['Access-Control-Allow-Origin'] = '*'
         resp_headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
         resp_headers['Access-Control-Allow-Headers'] = 'Range, Cache-Control'
-        resp_headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag, X-Storage-Backend, X-Cache-Hit'
+        resp_headers['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges, ETag, X-Storage-Backend, X-Cache-Hit, X-Cache-Enabled'
 
         resp = Response(
             body_bytes,
@@ -301,7 +306,7 @@ def get_stats_api():
     # 获取本地缓存信息
     local_cache_info = {}
     try:
-        cache_enabled = str(get_system_setting('local_cache_enabled') or '1') == '1'
+        cache_enabled = str(get_system_setting('local_cache_enabled') or '0') == '1'
         if cache_enabled:
             cache_service = get_cache_service()
             cache_count, cache_size = cache_service.get_cache_size()

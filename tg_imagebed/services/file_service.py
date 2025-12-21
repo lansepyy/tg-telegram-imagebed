@@ -255,7 +255,7 @@ def process_upload(
     # 写入本地缓存（如果启用）
     try:
         from ..database import get_system_setting
-        cache_enabled = str(get_system_setting('local_cache_enabled') or '1') == '1'
+        cache_enabled = str(get_system_setting('local_cache_enabled') or '0') == '1'
         if cache_enabled:
             from pathlib import Path
             file_ext = Path(filename).suffix or '.jpg'
@@ -340,7 +340,7 @@ def record_existing_telegram_file(
     if file_content:
         try:
             from ..database import get_system_setting
-            cache_enabled = str(get_system_setting('local_cache_enabled') or '1') == '1'
+            cache_enabled = str(get_system_setting('local_cache_enabled') or '0') == '1'
             if cache_enabled:
                 from pathlib import Path
                 file_ext = Path(filename).suffix or '.jpg'
