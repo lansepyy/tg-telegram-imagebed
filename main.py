@@ -491,12 +491,31 @@ def run_telegram_bot():
             filename = ""
             content_type = "image/jpeg"
             file_unique_id = None
+            caption = message.caption or ""
 
             if message.photo:
                 tg_file = message.photo[-1]
                 file_unique_id = tg_file.file_unique_id
-                filename = f"telegram_{file_unique_id}.jpg"
+                
+                # 优先使用 caption 作为文件名，否则使用日期时间
+                if caption.strip():
+                    # 清理文件名中的非法字符
+                    safe_caption = "".join(c for c in caption if c.isalnum() or c in "._- ").strip()
+                    if safe_caption:
+                        # 如果 caption 没有扩展名，添加 .jpg
+                        if not any(safe_caption.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")):
+                            filename = f"{safe_caption}.jpg"
+                        else:
+                            filename = safe_caption
+                    else:
+                        # caption 清理后为空，使用日期
+                        filename = time.strftime("IMG_%Y%m%d_%H%M%S.jpg")
+                else:
+                    # 无 caption，使用日期时间格式
+                    filename = time.strftime("IMG_%Y%m%d_%H%M%S.jpg")
+                
                 content_type = "image/jpeg"
+                
             elif message.document:
                 doc = message.document
                 mime = (doc.mime_type or "").lower()
@@ -507,7 +526,23 @@ def run_telegram_bot():
                 if is_image:
                     tg_file = doc
                     file_unique_id = doc.file_unique_id
-                    filename = doc.file_name or f"telegram_{file_unique_id}"
+                    
+                    # 文档形式：优先使用 caption，其次原始文件名，最后日期
+                    if caption.strip():
+                        safe_caption = "".join(c for c in caption if c.isalnum() or c in "._- ").strip()
+                        if safe_caption:
+                            # 保留原始扩展名
+                            import os
+                            orig_ext = os.path.splitext(doc.file_name or "")[1] if doc.file_name else ""
+                            if not any(safe_caption.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp")):
+                                filename = f"{safe_caption}{orig_ext or '.jpg'}"
+                            else:
+                                filename = safe_caption
+                        else:
+                            filename = doc.file_name or time.strftime("IMG_%Y%m%d_%H%M%S.jpg")
+                    else:
+                        filename = doc.file_name or time.strftime("IMG_%Y%m%d_%H%M%S.jpg")
+                    
                     content_type = doc.mime_type or _get_mime_type(filename)
 
             if not tg_file:
