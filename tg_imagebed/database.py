@@ -406,6 +406,9 @@ def save_file_info(encrypted_id: str, file_info: Dict[str, Any]) -> None:
             except Exception:
                 storage_meta_json = "{}"
 
+        auth_token_value = file_info.get('auth_token')
+        logger.info(f"保存文件信息: encrypted_id={encrypted_id}, auth_token={auth_token_value[:20] if auth_token_value else 'None'}...")
+        
         cursor.execute('''
             INSERT INTO file_storage (
                 encrypted_id, file_id, file_path, upload_time,
@@ -433,7 +436,7 @@ def save_file_info(encrypted_id: str, file_info: Dict[str, Any]) -> None:
             1 if file_info.get('is_group_upload') else 0,
             file_info.get('group_message_id'),
             file_info.get('group_chat_id'),
-            file_info.get('auth_token'),
+            auth_token_value,
             storage_backend,
             storage_key,
             storage_meta_json,
@@ -884,6 +887,11 @@ def get_token_uploads(token: str, limit: int = 50, page: int = 1) -> List[Dict[s
             cursor = conn.cursor()
             offset = (page - 1) * limit
 
+            # 先查询总数用于调试
+            cursor.execute('SELECT COUNT(*) FROM file_storage WHERE auth_token = ?', (token,))
+            total_count = cursor.fetchone()[0]
+            logger.info(f"查询Token上传: token={token[:20]}... 找到{total_count}条记录")
+
             cursor.execute('''
                 SELECT encrypted_id, original_filename, file_size, created_at,
                        cdn_cached, cdn_url, mime_type
@@ -893,7 +901,9 @@ def get_token_uploads(token: str, limit: int = 50, page: int = 1) -> List[Dict[s
                 LIMIT ? OFFSET ?
             ''', (token, limit, offset))
 
-            return [dict(row) for row in cursor.fetchall()]
+            results = [dict(row) for row in cursor.fetchall()]
+            logger.info(f"返回{len(results)}条记录")
+            return results
 
     except Exception as e:
         logger.error(f"获取token上传记录失败: {e}")
