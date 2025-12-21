@@ -835,6 +835,23 @@ def register_admin_routes(app, DATABASE_PATH, get_all_files_count, get_total_siz
                 except Exception as e:
                     logger.debug(f"TG消息删除跳过: {e}")
 
+            # 同步删除本地缓存
+            cache_deleted_count = 0
+            try:
+                from .services.cache_service import get_cache_service
+                cache_service = get_cache_service()
+                for row in files_to_delete:
+                    encrypted_id = row[0]
+                    try:
+                        if cache_service.delete(encrypted_id):
+                            cache_deleted_count += 1
+                    except Exception as e:
+                        logger.debug(f"删除缓存失败 {encrypted_id}: {e}")
+                if cache_deleted_count > 0:
+                    logger.info(f"同步删除本地缓存: {cache_deleted_count} 个文件")
+            except Exception as e:
+                logger.debug(f"本地缓存删除跳过: {e}")
+
             # 删除数据库记录（分块处理）
             for chunk in _chunked(ids):
                 placeholders = ','.join('?' * len(chunk))

@@ -148,22 +148,50 @@ class ImageCacheService:
 
         Args:
             encrypted_id: 加密的文件ID
-            file_ext: 文件扩展名（含点号）
+            file_ext: 文件扩展名（含点号）。如果为空，则匹配所有扩展名
 
         Returns:
             是否删除成功
         """
-        cache_path = self._get_cache_path(encrypted_id, file_ext)
+        # 如果提供了扩展名，直接删除指定文件
+        if file_ext:
+            cache_path = self._get_cache_path(encrypted_id, file_ext)
+            if cache_path.exists():
+                try:
+                    cache_path.unlink()
+                    logger.info(f"缓存删除成功: {encrypted_id}{file_ext}")
+                    return True
+                except Exception as e:
+                    logger.error(f"缓存删除失败: {encrypted_id}{file_ext}, error={e}")
+                    return False
+            return True
         
-        if not cache_path.exists():
+        # 如果没有提供扩展名，查找并删除所有匹配的文件
+        # 根据两级目录结构查找
+        if len(encrypted_id) >= 4:
+            level1 = encrypted_id[:2]
+            level2 = encrypted_id[2:4]
+            cache_subdir = self.cache_dir / level1 / level2
+        else:
+            cache_subdir = self.cache_dir / "misc"
+        
+        if not cache_subdir.exists():
             return True
-
+        
+        deleted = False
         try:
-            cache_path.unlink()
-            logger.info(f"缓存删除成功: {encrypted_id}")
-            return True
+            # 查找所有以 encrypted_id 开头的文件
+            for cache_file in cache_subdir.glob(f"{encrypted_id}*"):
+                if cache_file.is_file():
+                    try:
+                        cache_file.unlink()
+                        logger.info(f"缓存删除成功: {cache_file.name}")
+                        deleted = True
+                    except Exception as e:
+                        logger.error(f"缓存删除失败: {cache_file.name}, error={e}")
+            return deleted or True  # 没找到文件也算成功
         except Exception as e:
-            logger.error(f"缓存删除失败: {encrypted_id}, error={e}")
+            logger.error(f"查找缓存文件失败: {encrypted_id}, error={e}")
             return False
 
     def get_cache_size(self) -> Tuple[int, int]:
