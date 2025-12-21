@@ -139,7 +139,7 @@ if db_dir and not os.path.exists(db_dir):
     os.makedirs(db_dir, exist_ok=True)
 
 # ===================== 日志配置 =====================
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 LOG_FILE = os.getenv("LOG_FILE", "telegram_imagebed.log")
 TIMEZONE = os.getenv("TZ", "Asia/Shanghai")  # 默认使用中国时区
 
