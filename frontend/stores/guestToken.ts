@@ -75,6 +75,7 @@ export const useGuestTokenStore = defineStore('guestToken', {
     persistVault() {
       if (!import.meta.client) return
       localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(this.vault))
+      console.log('[persistVault] 保存到localStorage, activeId:', this.vault.activeId, 'items:', this.vault.items.length)
     },
 
     loadVault() {
@@ -136,6 +137,7 @@ export const useGuestTokenStore = defineStore('guestToken', {
       this.token = active?.token || ''
       this.tokenInfo = active?.tokenInfo || null
       this.isGuest = true
+      console.log('[syncActiveFromVault] activeId:', this.vault.activeId, 'items:', this.vault.items.length, 'token:', this.token ? '已设置' : '未设置')
     },
 
     async setActiveTokenById(id: string, opts?: { verify?: boolean }) {
@@ -171,6 +173,8 @@ export const useGuestTokenStore = defineStore('guestToken', {
     async addTokenToVault(token: string, opts?: { albumName?: string; makeActive?: boolean; verify?: boolean }) {
       const t = (token || '').trim()
       if (!t) throw new Error('Token不能为空')
+      
+      console.log('[addTokenToVault] 添加Token, makeActive:', opts?.makeActive, 'verify:', opts?.verify)
 
       const existing = this.vault.items.find(i => i.token === t)
       if (existing) {
@@ -181,7 +185,13 @@ export const useGuestTokenStore = defineStore('guestToken', {
         }
         this.persistVault()
         this.syncActiveFromVault()
-        if (opts?.verify) await this.verifyToken()
+        if (opts?.verify) {
+          try {
+            await this.verifyToken()
+          } catch (error) {
+            console.warn('Token验证失败:', error)
+          }
+        }
         return existing.id
       }
 
@@ -198,7 +208,14 @@ export const useGuestTokenStore = defineStore('guestToken', {
       }
       this.persistVault()
       this.syncActiveFromVault()
-      if (opts?.verify) await this.verifyToken()
+      if (opts?.verify) {
+        try {
+          await this.verifyToken()
+        } catch (error) {
+          // Token已添加，验证失败不影响添加流程
+          console.warn('Token验证失败:', error)
+        }
+      }
       return item.id
     },
 
@@ -207,6 +224,8 @@ export const useGuestTokenStore = defineStore('guestToken', {
       const config = useRuntimeConfig()
 
       try {
+        console.log('[generateToken] 开始生成Token, options:', options)
+        
         // 只传递用户明确指定的参数，否则让后端使用默认值
         const body: Record<string, any> = {}
         if (options?.upload_limit != null) body.upload_limit = options.upload_limit
@@ -218,17 +237,21 @@ export const useGuestTokenStore = defineStore('guestToken', {
           body
         })
 
+        console.log('[generateToken] API响应:', response.success, 'token:', response.data?.token ? '已生成' : '未生成')
+
         if (response.success) {
           await this.addTokenToVault(response.data.token, {
             albumName: options?.albumName || '',
             makeActive: true,
             verify: true
           })
+          console.log('[generateToken] Token已添加到vault')
           return response.data
         } else {
           throw new Error(response.error || '生成Token失败')
         }
       } catch (error: any) {
+        console.error('[generateToken] 生成失败:', error)
         throw new Error(error.data?.error || error.message || '生成Token失败')
       }
     },
