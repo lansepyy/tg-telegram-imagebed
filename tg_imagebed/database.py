@@ -712,8 +712,17 @@ def create_auth_token(
                 (token, expires_at, upload_limit, ip_address, user_agent, description)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', (token, expires_at, upload_limit, ip_address, user_agent, description or '游客Token'))
+            conn.commit()
 
         logger.info(f"创建新的auth_token: {token[:20]}... (限制: {upload_limit}张, 有效期: {expires_days}天)")
+        
+        # 验证Token是否真的保存到数据库
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COUNT(*) FROM auth_tokens WHERE token = ?', (token,))
+            count = cursor.fetchone()[0]
+            logger.info(f"验证Token已保存: token={token[:20]}... count={count}")
+        
         return token
 
     except Exception as e:
